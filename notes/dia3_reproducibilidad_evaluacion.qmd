@@ -1,0 +1,656 @@
+---
+title: "Día 3 · Reproducibilidad y evaluación"
+subtitle: "De la idea al experimento: Cómo diseñar, entrenar y comunicar un proyecto de Machine Learning"
+author: "Workshop ML · Abril 2026"
+date: "2026-04-15"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenido"
+    number-sections: true
+    highlight-style: github
+    code-fold: false
+    code-tools: true
+    self-contained: true
+    fig-align: center
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
+bibliography: references.bib
+---
+
+::: {.callout-note icon=false}
+## 🗓 Sesión 3 · 15 de abril de 2026 · 7:00 – 9:00 h
+
+**Estructura:** ~30 min exposición · ~60 min práctica guiada · ~20 min discusión
+
+**Checkpoint del Día 2:** modelo entrenado, dos runs en W&B, pipeline DVC inicializado, `best_model.pt` guardado.
+:::
+
+---
+
+# Reproducibilidad en Machine Learning
+
+## ¿Qué significa que un experimento sea reproducible?
+
+Un experimento es reproducible cuando **otra persona, en otra máquina y en otro momento**, puede obtener los mismos resultados siguiendo las instrucciones documentadas.
+
+En ML esto implica controlar todas las fuentes de aleatoriedad:
+
+| Fuente | Cómo controlarla |
+|---|---|
+| **Inicialización de pesos** | `torch.manual_seed(seed)` |
+| **Shuffle del DataLoader** | `generator = torch.Generator(); generator.manual_seed(seed)` |
+| **Operaciones en CUDA** | `torch.backends.cudnn.deterministic = True` |
+| **NumPy** | `np.random.seed(seed)` |
+| **Python built-in** | `random.seed(seed)` |
+| **Versión de librerías** | `requirements.txt` / `conda env export` |
+| **Versión del dataset** | DVC |
+
+## Función de semilla global
+
+```python
+# src/utils.py
+import os
+import random
+import numpy as np
+import torch
+
+
+def set_seed(seed: int = 42) -> None:
+    """
+    Fija todas las semillas de aleatoriedad para reproducibilidad completa.
+
+    Args:
+        seed: Entero para inicializar los generadores.
+    """
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)       # Para multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False # Desactivar optimizaciones no deterministas
+    print(f"Semilla fijada: {seed}")
+```
+
+::: {.callout-warning}
+## Nota sobre `cudnn.deterministic`
+
+Activar `deterministic = True` puede reducir ligeramente el rendimiento de entrenamiento. Para producción se acepta; para benchmarks de velocidad, evalúa si vale la pena.
+:::
+
+## Gestión de entornos
+
+```bash
+# ── Exportar entorno Conda exacto ───────────────────────────────────────────
+conda env export > environment.yml
+# Incluye versiones exactas de TODAS las dependencias, incluidas las del sistema.
+
+# Recrear el entorno en otra máquina
+conda env create -f environment.yml
+conda activate pneumonia-clf
+
+# ── Alternativa con pip ─────────────────────────────────────────────────────
+pip freeze > requirements.txt
+pip install -r requirements.txt
+```
+
+```yaml
+# environment.yml (ejemplo)
+name: pneumonia-clf
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.14
+  - pip=24.0
+  - cudatoolkit=11.8
+  - pip:
+    - torch==2.2.1+cu118
+    - torchvision==0.17.1+cu118
+    - numpy==1.26.4
+    - pandas==2.2.1
+    - scikit-learn==1.4.1
+    - matplotlib==3.8.3
+    - wandb==0.16.4
+    - dvc==3.47.0
+    - pyyaml==6.0.1
+```
+
+## Logging estructurado
+
+```python
+# src/utils.py (continuación)
+import logging
+from datetime import datetime
+from pathlib import Path
+
+
+def get_logger(name: str, log_dir: Path = Path("outputs/logs")) -> logging.Logger:
+    """
+    Crea un logger que escribe en consola y en archivo simultáneamente.
+
+    Args:
+        name: Nombre del logger (usualmente __name__).
+        log_dir: Directorio donde guardar el archivo de log.
+
+    Returns:
+        Logger configurado.
+    """
+    log_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file  = log_dir / f"{name}_{timestamp}.log"
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+    fmt = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    # Handler para consola
+    ch = logging.StreamHandler()
+    ch.setFormatter(fmt)
+
+    # Handler para archivo
+    fh = logging.FileHandler(log_file)
+    fh.setFormatter(fmt)
+
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    return logger
+
+
+# Uso en cualquier módulo:
+# from src.utils import get_logger
+# logger = get_logger(__name__)
+# logger.info("Iniciando entrenamiento...")
+# logger.warning("Dataset desbalanceado: 3:1")
+```
+
+---
+
+# Evaluación rigurosa
+
+## El problema con usar solo accuracy
+
+Supongamos que nuestro modelo clasifica **todas** las imágenes como `PNEUMONIA`:
+
+```python
+# Ejemplo de por qué accuracy puede ser engañosa
+n_normal    = 234
+n_pneumonia = 390
+total       = n_normal + n_pneumonia
+
+# Modelo trivial: predice siempre PNEUMONIA
+accuracy_trivial = n_pneumonia / total
+print(f"Accuracy del modelo trivial: {accuracy_trivial:.2%}")   # ~62.5%
+# ¡Parece decente, pero no detecta ningún caso normal!
+```
+
+## Métricas completas de evaluación
+
+```python
+# src/evaluate.py
+from pathlib import Path
+from typing import Dict, List, Tuple
+import json
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_curve,
+    precision_recall_curve,
+    roc_auc_score,
+    average_precision_score,
+    ConfusionMatrixDisplay,
+)
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
+
+@torch.no_grad()
+def get_predictions(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
+    """
+    Obtiene predicciones, etiquetas, probabilidades y rutas de imagen.
+
+    Returns:
+        Tupla (preds, labels, probs, paths) donde:
+        - preds: array de etiquetas predichas
+        - labels: array de etiquetas verdaderas
+        - probs: array de probabilidades para clase positiva
+        - paths: lista de rutas de archivo
+    """
+    model.eval()
+    all_preds, all_labels, all_probs, all_paths = [], [], [], []
+
+    for images, labels in loader:
+        images = images.to(device)
+        logits = model(images)
+        probs  = torch.softmax(logits, dim=1)[:, 1]
+        preds  = logits.argmax(dim=1)
+
+        all_preds.extend(preds.cpu().numpy())
+        all_labels.extend(labels.numpy())
+        all_probs.extend(probs.cpu().numpy())
+
+    return (
+        np.array(all_preds),
+        np.array(all_labels),
+        np.array(all_probs),
+        all_paths,
+    )
+
+
+def compute_metrics(
+    labels: np.ndarray,
+    preds: np.ndarray,
+    probs: np.ndarray,
+    threshold: float = 0.5,
+    save_dir: Path = Path("outputs/figures"),
+) -> Dict[str, float]:
+    """
+    Calcula métricas completas y genera figuras de evaluación.
+
+    Args:
+        labels: Etiquetas verdaderas (0=NORMAL, 1=PNEUMONIA).
+        preds: Predicciones del modelo.
+        probs: Probabilidades para la clase positiva.
+        threshold: Umbral de decisión.
+        save_dir: Directorio donde guardar las figuras.
+
+    Returns:
+        Diccionario con todas las métricas.
+    """
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Métricas escalares ──────────────────────────────────────────────────
+    report = classification_report(
+        labels, preds,
+        target_names=["NORMAL", "PNEUMONIA"],
+        output_dict=True
+    )
+
+    metrics = {
+        "accuracy":         report["accuracy"],
+        "precision_normal": report["NORMAL"]["precision"],
+        "recall_normal":    report["NORMAL"]["recall"],
+        "f1_normal":        report["NORMAL"]["f1-score"],
+        "precision_pneumonia": report["PNEUMONIA"]["precision"],
+        "recall_pneumonia":    report["PNEUMONIA"]["recall"],
+        "f1_pneumonia":        report["PNEUMONIA"]["f1-score"],
+        "auc_roc":          roc_auc_score(labels, probs),
+        "avg_precision":    average_precision_score(labels, probs),
+    }
+
+    print("\n── Reporte de clasificación ─────────────────────────────")
+    print(classification_report(labels, preds,
+                                target_names=["NORMAL", "PNEUMONIA"]))
+    print(f"AUC-ROC:           {metrics['auc_roc']:.4f}")
+    print(f"Average Precision: {metrics['avg_precision']:.4f}")
+
+    # ── Figura 1: Matriz de confusión ───────────────────────────────────────
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    cm = confusion_matrix(labels, preds)
+    disp = ConfusionMatrixDisplay(cm, display_labels=["NORMAL", "PNEUMONIA"])
+    disp.plot(ax=axes[0], colorbar=False, cmap="Blues")
+    axes[0].set_title("Matriz de confusión (conteos)")
+
+    cm_norm = confusion_matrix(labels, preds, normalize="true")
+    disp_n  = ConfusionMatrixDisplay(cm_norm, display_labels=["NORMAL", "PNEUMONIA"])
+    disp_n.plot(ax=axes[1], colorbar=False, cmap="Blues")
+    axes[1].set_title("Matriz de confusión (normalizada)")
+
+    plt.tight_layout()
+    plt.savefig(save_dir / "confusion_matrix.png", dpi=150)
+    plt.close()
+
+    # ── Figura 2: Curvas ROC y Precision-Recall ─────────────────────────────
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # ROC
+    fpr, tpr, _ = roc_curve(labels, probs)
+    axes[0].plot(fpr, tpr, color="steelblue", lw=2,
+                 label=f"AUC = {metrics['auc_roc']:.3f}")
+    axes[0].plot([0, 1], [0, 1], "k--", lw=1, alpha=0.5)
+    axes[0].set_xlabel("Tasa de Falsos Positivos")
+    axes[0].set_ylabel("Tasa de Verdaderos Positivos")
+    axes[0].set_title("Curva ROC")
+    axes[0].legend()
+
+    # Precision-Recall
+    prec, rec, _ = precision_recall_curve(labels, probs)
+    axes[1].plot(rec, prec, color="coral", lw=2,
+                 label=f"AP = {metrics['avg_precision']:.3f}")
+    axes[1].set_xlabel("Recall")
+    axes[1].set_ylabel("Precision")
+    axes[1].set_title("Curva Precision-Recall")
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.savefig(save_dir / "roc_pr_curves.png", dpi=150)
+    plt.close()
+
+    return metrics
+```
+
+## Efecto del umbral de decisión
+
+```python
+def threshold_analysis(
+    labels: np.ndarray,
+    probs: np.ndarray,
+    save_dir: Path = Path("outputs/figures"),
+) -> None:
+    """
+    Muestra cómo cambian precision, recall y F1 al variar el umbral.
+    Útil para elegir el umbral óptimo según los requisitos clínicos.
+    """
+    from sklearn.metrics import precision_score, recall_score, f1_score
+
+    thresholds = np.arange(0.1, 0.95, 0.05)
+    precisions, recalls, f1s = [], [], []
+
+    for t in thresholds:
+        preds_t = (probs >= t).astype(int)
+        precisions.append(precision_score(labels, preds_t, pos_label=1, zero_division=0))
+        recalls.append(recall_score(labels, preds_t, pos_label=1))
+        f1s.append(f1_score(labels, preds_t, pos_label=1))
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(thresholds, precisions, "o-", label="Precision", color="steelblue")
+    plt.plot(thresholds, recalls,    "s-", label="Recall",    color="coral")
+    plt.plot(thresholds, f1s,        "^-", label="F1-score",  color="seagreen")
+    plt.axhline(0.90, color="red", linestyle="--", alpha=0.5, label="Objetivo recall ≥ 0.90")
+    plt.xlabel("Umbral de decisión")
+    plt.ylabel("Métrica")
+    plt.title("Efecto del umbral sobre Precision / Recall / F1\n(clase PNEUMONIA)")
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.savefig(save_dir / "threshold_analysis.png", dpi=150)
+    plt.show()
+    print("\nElige el umbral más bajo que cumple recall ≥ 0.90.")
+```
+
+## Análisis por subgrupos
+
+El dataset de neumonía incluye dos subtipos en la clase positiva: **bacterial** y **viral**. Analizar el desempeño por subgrupo revela si el modelo funciona igual de bien en ambos casos.
+
+```python
+def subgroup_analysis(
+    labels: np.ndarray,
+    preds: np.ndarray,
+    probs: np.ndarray,
+    subgroup_labels: np.ndarray,
+    class_names: List[str] = ["NORMAL", "BACTERIAL", "VIRAL"],
+) -> Dict[str, Dict]:
+    """
+    Calcula métricas separadas por subgrupo.
+
+    Args:
+        labels: Etiquetas binarias (0=NORMAL, 1=PNEUMONIA).
+        preds: Predicciones binarias.
+        probs: Probabilidades para clase positiva.
+        subgroup_labels: Etiquetas de subgrupo (0=NORMAL, 1=bacterial, 2=viral).
+
+    Returns:
+        Diccionario de métricas por subgrupo.
+    """
+    from sklearn.metrics import recall_score, precision_score
+
+    results = {}
+    for i, name in enumerate(class_names):
+        mask = subgroup_labels == i
+        if mask.sum() == 0:
+            continue
+
+        binary_true = (subgroup_labels[mask] > 0).astype(int)
+        binary_pred = preds[mask]
+
+        results[name] = {
+            "n":         int(mask.sum()),
+            "recall":    recall_score(binary_true, binary_pred,
+                                      zero_division=0),
+            "precision": precision_score(binary_true, binary_pred,
+                                         zero_division=0),
+        }
+        print(f"{name:10s}: n={results[name]['n']:4d} | "
+              f"recall={results[name]['recall']:.3f} | "
+              f"precision={results[name]['precision']:.3f}")
+
+    return results
+```
+
+## Análisis de errores: ¿dónde falla el modelo?
+
+```python
+def visualize_errors(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    n_errors: int = 16,
+    save_dir: Path = Path("outputs/figures"),
+) -> None:
+    """
+    Muestra una cuadrícula de los errores de clasificación más confiados.
+    Ayuda a identificar patrones sistemáticos de fallo.
+
+    Args:
+        model: Modelo entrenado.
+        loader: DataLoader con imágenes y etiquetas.
+        device: Dispositivo de cómputo.
+        n_errors: Número de errores a visualizar.
+        save_dir: Directorio donde guardar la figura.
+    """
+    import torchvision.transforms.functional as TF
+
+    model.eval()
+    errors = []   # (imagen, true_label, pred_label, prob)
+
+    with torch.no_grad():
+        for images, labels in loader:
+            images = images.to(device)
+            logits = model(images)
+            probs  = torch.softmax(logits, dim=1)
+            preds  = logits.argmax(dim=1)
+
+            for i in range(len(labels)):
+                if preds[i] != labels[i]:
+                    errors.append((
+                        images[i].cpu(),
+                        labels[i].item(),
+                        preds[i].item(),
+                        probs[i].max().item(),
+                    ))
+
+    # Ordenar por confianza descendente (errores más seguros del modelo)
+    errors.sort(key=lambda x: x[3], reverse=True)
+    errors = errors[:n_errors]
+
+    cls_names = ["NORMAL", "PNEUMONIA"]
+    cols = 4
+    rows = (len(errors) + cols - 1) // cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+    axes = axes.flatten()
+
+    mean = np.array([0.485, 0.456, 0.406])
+    std  = np.array([0.229, 0.224, 0.225])
+
+    for idx, (img, true, pred, prob) in enumerate(errors):
+        # Desnormalizar para visualización
+        img_np = img.permute(1, 2, 0).numpy()
+        img_np = np.clip(img_np * std + mean, 0, 1)
+
+        axes[idx].imshow(img_np, cmap="gray")
+        axes[idx].set_title(
+            f"Real: {cls_names[true]}\nPred: {cls_names[pred]} ({prob:.2f})",
+            fontsize=8,
+            color="red"
+        )
+        axes[idx].axis("off")
+
+    # Ocultar ejes sobrantes
+    for idx in range(len(errors), len(axes)):
+        axes[idx].axis("off")
+
+    plt.suptitle(
+        f"Errores más confiados del modelo (n={len(errors)})\n"
+        "Ordenados por probabilidad descendente",
+        fontsize=11
+    )
+    plt.tight_layout()
+    plt.savefig(save_dir / "error_analysis.png", dpi=150)
+    plt.show()
+    print(f"Total de errores encontrados: {len(errors)}")
+```
+
+---
+
+# Guardar métricas para el pipeline DVC
+
+```python
+def save_metrics(metrics: Dict[str, float],
+                 output_path: Path = Path("outputs/test_metrics.json")) -> None:
+    """
+    Guarda las métricas en formato JSON, compatible con DVC metrics.
+
+    Args:
+        metrics: Diccionario de métricas.
+        output_path: Ruta del archivo de salida.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    print(f"Métricas guardadas en: {output_path}")
+
+
+# ── Script principal de evaluación ─────────────────────────────────────────
+if __name__ == "__main__":
+    import yaml
+    from src.data  import get_dataloader
+    from src.model import build_model
+    from src.utils import set_seed, get_logger
+
+    logger = get_logger("evaluate")
+
+    with open("configs/baseline.yaml") as f:
+        cfg = yaml.safe_load(f)
+
+    set_seed(cfg["training"]["seed"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Cargar modelo
+    model = build_model(num_classes=2, freeze_backbone=False)
+    model.load_state_dict(torch.load("outputs/checkpoints/best_model.pt",
+                                     map_location=device))
+    model = model.to(device)
+
+    # DataLoader de test
+    test_loader = get_dataloader(
+        Path("data/raw/chest_xray"), "test",
+        batch_size=cfg["data"]["batch_size"],
+        num_workers=cfg["data"]["num_workers"]
+    )
+
+    # Predicciones
+    preds, labels, probs, _ = get_predictions(model, test_loader, device)
+
+    # Métricas y figuras
+    metrics = compute_metrics(labels, preds, probs)
+    threshold_analysis(labels, probs)
+    save_metrics(metrics)
+
+    logger.info(f"AUC-ROC test: {metrics['auc_roc']:.4f}")
+    logger.info(f"Recall PNEUMONIA: {metrics['recall_pneumonia']:.4f}")
+```
+
+---
+
+# Práctica guiada
+
+## Ejercicio 1 · Pipeline reproducible (20 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Agrega `set_seed()` al inicio de `run_experiment.py`.
+2. Ejecuta el mismo experimento dos veces con la misma semilla.
+3. Verifica en W&B que las curvas de pérdida son idénticas.
+4. Ahora cambia la semilla a `seed=123` y compara: ¿cambia el resultado final?
+:::
+
+## Ejercicio 2 · Evaluación completa (25 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Carga el `best_model.pt` del Día 2 y ejecuta `compute_metrics` sobre el conjunto de test.
+2. Genera las cuatro figuras: matriz de confusión, curvas ROC/PR, análisis de umbral.
+3. Responde: ¿El modelo cumple la restricción clínica de recall ≥ 0.90?
+4. Si no la cumple, ajusta el umbral con `threshold_analysis` y reporta el nuevo umbral.
+:::
+
+## Ejercicio 3 · Análisis de errores (15 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Ejecuta `visualize_errors` sobre el conjunto de test.
+2. Observa los 16 errores más confiados.
+3. Discute con tu equipo: ¿Hay algún patrón visual en los errores? ¿Son imágenes de baja calidad? ¿Casos ambiguos?
+:::
+
+---
+
+# Discusión
+
+**Preguntas para cerrar la sesión:**
+
+1. Si el recall de PNEUMONIA es 0.94 pero la precision es 0.71, ¿aceptarías el modelo para un sistema de triaje clínico? ¿Por qué?
+2. ¿Qué haría un médico con los falsos positivos que genera este modelo?
+3. ¿Qué información adicional (edad, síntomas, temperatura) mejoraría el desempeño?
+4. ¿Es el conjunto de test representativo del mundo real? ¿Cuáles son sus limitaciones?
+
+---
+
+# Recursos y lecturas
+
+- @powers2011evaluation — Evaluación: precision, recall y F-measure.
+- @brodersen2010balanced — Balanced accuracy para datasets desbalanceados.
+- [Scikit-learn: Model Evaluation](https://scikit-learn.org/stable/modules/model_evaluation.html)
+- [W&B: Logging Images and Media](https://docs.wandb.ai/guides/track/log/media)
+
+---
+
+::: {.callout-note icon=false}
+## ✅ Checkpoint del Día 3
+
+Al terminar esta sesión deberías tener:
+
+- [ ] `set_seed()` integrado en todo el pipeline.
+- [ ] `environment.yml` exportado y en el repositorio.
+- [ ] Figuras de evaluación en `outputs/figures/`.
+- [ ] `outputs/test_metrics.json` con métricas completas.
+- [ ] Umbral de decisión ajustado para cumplir recall ≥ 0.90.
+- [ ] Pipeline DVC completo y reproducible (`dvc repro` genera todo desde cero).
+
+**Mañana (Día 4):** Convertiremos todos estos resultados en un reporte profesional con Quarto y lo presentaremos al grupo.
+:::

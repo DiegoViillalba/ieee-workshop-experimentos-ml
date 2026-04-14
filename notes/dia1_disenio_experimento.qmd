@@ -1,0 +1,1707 @@
+---
+title: "Diseño de experimentos en ML"
+subtitle: |
+  *"De la idea al experimento · IEEE CIC IPN 2026"*
+author: "Diego Villalba"
+date: "2026-04-13"
+lang: es
+unnumbered: true
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    highlight-style: github
+    mermaid:
+      theme: neutral
+
+bibliography: references.bib
+---
+
+::: {.callout-note icon=false}
+## Información de la sesión
+
+| | |
+|---|---|
+| **Fecha** | 13 de abril de 2026 |
+| **Horario** | 7:00 – 9:00 h |
+| **Duración** | 2 horas |
+| **Proyecto hilo conductor** | Clasificador de neumonía en rayos X (PyTorch + ResNet-18) |
+
+**Estructura de la sesión:**
+
+| Bloque | Tiempo | Tema |
+|--------|--------|------|
+| 1 | 0:00 – 0:20 | ¿Qué es un experimento en ML? |
+| 2 | 0:20 – 0:50 | De problema a pregunta científica |
+| 3 | 0:50 – 1:10 | Hipótesis |
+| 4 | 1:10 – 1:35 | Variables, diseño experimental y principios de robustez |
+| 5 | 1:35 – 1:50 | Métricas y baselines |
+| 6 | 1:50 – 2:00 | Selección de arquitectura y estructura del proyecto |
+| 7 | Cierre | Ejercicio integrador |
+:::
+
+---
+
+# ¿Qué es un experimento en ML? 
+
+## ML no es solo entrenar modelos
+
+La primera trampa conceptual al entrar a Machine Learning es confundir el **procedimiento** con el **propósito**. Entrenar un modelo es una tarea computacional; diseñar un experimento es un proceso de adquisición de conocimiento bajo condiciones controladas.
+
+Siguiendo a @hastie2009elements, el objetivo no es simplemente ajustar datos, sino estimar una función $f$ tal que $Y \approx f(X)$ con un **error de generalización mínimo**. Esta distinción entre error de entrenamiento y error de generalización es el corazón de todo experimento bien diseñado: un modelo que memoriza el set de entrenamiento no ha aprendido nada generalizable.
+
+@bishop2006pattern introduce el mismo principio desde el formalismo probabilístico: el aprendizaje automático es inferencia sobre distribuciones de probabilidad. El modelo estima parámetros que minimizan una función de pérdida respecto a una distribución de datos. Por lo tanto, **el experimento existe para medir esa estimación de forma válida**, no para producir un simple artefacto de software.
+
+::: {.callout-important}
+## Definición formal de experimento en ML
+
+$$
+\text{Experimento} = \text{Hipótesis} + \text{Datos} + \text{Métrica} + \text{Protocolo}
+$$
+
+Cada uno de estos cuatro componentes debe estar **definido y congelado antes de ejecutar una sola línea de código**.
+:::
+
+De manera general podemos entender la anatomía del diseño experimental en ML con este diagrama:
+
+```{mermaid}
+graph TB
+    subgraph "Fase de Diseño (Pre-computacional)"
+    A[Hipótesis] --> B[Selección de Métricas]
+    B --> C[Definición de Protocolo]
+    end
+
+    subgraph "Fase de Ejecución"
+    C --> D[Aislamiento de Datos]
+    D --> E[Entrenamiento]
+    E --> F[Evaluación de Generalización]
+    end
+
+    subgraph "Conocimiento"
+    F --> G{¿Valida Hipótesis?}
+    G -->|Sí| H[Teoría Reforzada / Modelo a Prod]
+    G -->|No| I[Nueva Hipótesis / Ajuste de Variables]
+    end
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style F fill:#bbf,stroke:#333,stroke-width:2px
+    style G fill:#fff,stroke:#333,stroke-width:4px
+```
+
+La analogía más cercana es la de un experimento científico tradicional: no es suficiente con "hacer algo" con los datos. Se debe diseñar un experimento que permita **refutar una hipótesis específica** sobre el comportamiento del modelo, usando un protocolo que garantice que los resultados sean atribuibles a la intervención y no a factores externos.
+
+
+**Ejemplo : El Experimento de la "Curva Inestable"**
+
+Imagina que te caíste de tu bicicleta en una curva con grava. Quieres saber si te caíste por la **presión de las llantas** o por la **velocidad de entrada**.
+
+* **Hipótesis:** "Reducir la presión de las llantas a 30 PSI aumentará el agarre y me permitirá tomar la curva a 20 km/h sin deslizarme, comparado con la presión actual de 50 PSI".
+* **Datos:** El mismo tramo de 10 metros de curva con grava, el mismo peso del ciclista y la misma bicicleta.
+* **Métrica:** Ángulo de inclinación máximo antes de perder tracción (medido con sensor) y éxito/fallo de la maniobra.
+* **Protocolo:** Pasaré por la curva 10 veces a la misma velocidad (20 km/h). 5 veces con 50 PSI y 5 veces con 30 PSI. No cambiaré nada más (ni frenado, ni posición del cuerpo).
+
+**Resultado:** Si con 30 PSI no te caes y con 50 PSI sí, has obtenido **evidencia** de que la presión era la variable crítica. Si te caes en ambas, la presión no era el problema (quizás sea la técnica o el tipo de llanta).
+
+
+
+## El costo del trial-and-error sin estructura: El caso de la "Bici Frankestein"
+
+Siguiendo a @sculley2015hidden, la deuda técnica en ML no suele estar en el algoritmo, sino en las decisiones indocumentadas. En nuestro ejemplo, esto equivale a cambiar piezas de la bicicleta cada vez que te caes sin anotar qué cambiaste. Después de un mes, tienes una "Bici Frankenstein": no sabes si es más rápida por el aceite de la cadena, el nuevo manubrio o porque inflaste de más las llantas. 
+
+Si aplicamos el criterio de **falsabilidad** de @popper1959logic, un experimento sin hipótesis en la bici se ve así: *"Voy a pedalear de forma diferente y ver qué pasa"*. 
+
+* **El problema:** No importa el resultado, siempre podrás inventar una explicación a posteriori (*"Me caí porque justo sopló el viento"*). No hay aprendizaje real porque no definiste qué resultado invalidaría tu idea.
+
+
+
+### Comparativa: Caos vs. Método
+
+| Característica | Trial-and-Error (Caos) | Experimento Estructurado (Ciencia) |
+| :--- | :--- | :--- |
+| **Punto de partida** | "A ver qué sale si le muevo aquí." | "Si bajo la presión, el agarre sube." |
+| **Variable** | Cambias llantas, frenos y asiento a la vez. | Solo cambias la presión de la llanta. |
+| **Falsabilidad** | Si te caes, culpas a la suerte. | Si te caes a 30 PSI, tu hipótesis era falsa. |
+| **Conocimiento** | No sabes por qué la bici se siente "rara". | Sabes exactamente el límite físico de tu equipo. |
+
+
+## Flujo de Falsabilidad en la Bicicleta
+
+```{mermaid}
+flowchart TD
+    A["Me caigo en la<br>curva de grava"] --> B["¿Es la presión<br>muy alta?"]
+    B --> C["Hipótesis: A 30 PSI<br>NO me caigo"]
+    C --> D["Protocolo: 5 pasadas<br>a 20km/h constantes"]
+    D --> E["Presión: 30 PSI<br>Peso: Fijo"]
+    E --> F["Métrica: Binaria<br>(Caída / No Caída)"]
+    F --> G{"¿Me caí?"}
+    G -->|"Sí"| H["Hipótesis Falsa:<br>El problema es el neumático"]
+    G -->|"No"| I["Hipótesis Validada:<br>La presión era la causa"]
+    H --> B
+```
+
+::: {.callout-tip}
+## Conclusión para el Workshop
+Hacer ML sin hipótesis es como intentar arreglar una bici cambiando piezas al azar con los ojos vendados. Puede que eventualmente funcione, pero habrás acumulado una deuda de conocimiento que te impedirá repetir el éxito en el futuro.
+:::
+## Aplicado al proyecto: los cuatro componentes
+
+Antes de abrir Colab y descargar el dataset de rayos X [@kermany2018identifying], necesitamos completar esta tabla:
+
+| Componente | Respuesta inicial |
+|---|---|
+| **Hipótesis** | ResNet-18 preentrenada alcanza recall ≥ 0.90 en PNEUMONIA |
+| **Datos** | Chest X-Ray Images, ~5 800 imágenes, etiquetas NORMAL/PNEUMONIA |
+| **Métrica** | Recall de clase positiva (minimizar falsos negativos por costo clínico) |
+| **Protocolo** | División fija train/val/test, semilla fija, test evaluado una sola vez al final |
+
+
+## Las seis etapas de un experimento en ML (El método de la Bici)
+
+@montgomery2017design establece que todo experimento bien conducido debe atravesar una secuencia de decisiones. Si intentas arreglar tu caída en la bici saltándote pasos, terminarás comprando piezas que no necesitas.
+
+```{mermaid}
+flowchart TD
+    E1["① Objetivo<br>¿Por qué me caí?<br>(Error de generalización)"]
+    E2["② Variable respuesta<br>¿Cuántos metros derrapé?<br>(Métrica: Recall, MSE)"]
+    E3["③ Factores y niveles<br>Presión aire y tipo de llanta<br>(Hiperparámetros)"]
+    E4["④ Diseño experimental<br>¿Probaré todas las combinaciones?<br>(Factorial vs One-at-a-time)"]
+    E5["⑤ Ejecución<br>Hacer las 10 pasadas sin sesgo<br>(Reproducibilidad/Logging)"]
+    E6["⑥ Análisis estadístico<br>¿Fue la presión o fue suerte?<br>(Incertidumbre/P-value)"]
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6
+```
+
+
+## Entregables y Riesgos: De la teoría a la práctica
+
+| Etapa | Entregable | Error si se omite | Análogo en la Bici |
+|---|---|---|---|
+| **① Objetivo** | Pregunta científica escrita | Optimizar métrica equivocada | Intentar ir más rápido cuando el problema es el equilibrio. |
+| **② Respuesta** | Métrica con umbral | Evaluar lo que no importa | Medir qué tan bonita se ve la bici en lugar de si frena bien. |
+| **③ Factores** | Tabla de parámetros | Perder configuraciones clave | Olvidar que el peso de tu mochila también afecta la caída. |
+| **④ Diseño** | Plan de búsqueda | Perder interacciones | Cambiar la presión pero no el ritmo de pedaleo. |
+| **⑤ Ejecución** | `protocol.yaml` | Resultados no reproducibles | Olvidar cuánta presión le pusiste a la llanta ayer. |
+| **⑥ Análisis** | Reporte con incertidumbre | Conclusiones de ruido | "No me caí una vez, ¡ya soy experto!" (N=1 es azar). |
+
+
+
+::: {.callout-tip}
+## ¿Por qué diseño factorial? (La interacción Crucial)
+
+@montgomery2017design recomienda el **diseño factorial completo**: probar todas las combinaciones. En la bicicleta, esto es vital porque los factores **interactúan**.
+
+* **Factor A:** Presión de llanta (Alta/Baja).
+* **Factor B:** Velocidad (Rápida/Lenta).
+
+Quizás la presión baja funciona genial a velocidad lenta, pero es peligrosa a velocidad rápida. Si solo pruebas "un factor a la vez", nunca verás esa **interacción**. En ML, el efecto de tu *Learning Rate* depende totalmente de tu *Batch Size*. Si los optimizas por separado, estás persiguiendo fantasmas.
+:::
+
+
+# De problema a pregunta científica
+
+## El problema de la vaguedad: Por qué "quiero no caerme" no es ciencia
+
+@spiegelhalter2019art explica en *The Art of Statistics* que la mayoría de las preguntas científicas fallan por ser **demasiado vagas**. En la bici, si tu pregunta es "quiero manejar mejor", no tienes forma de saber si lo lograste. Una pregunta vaga no define datos, éxito ni fracaso.
+
+| Pregunta vaga | Pregunta científica |
+|---|---|
+| "Quiero mejorar el modelo" | "¿Si le subo el peso a la clase positiva a 2.0, logro ganar al menos 5 puntos de **recall** sin que se me caiga el **AUC-ROC** de 0.90?" |
+| "Siento que la bici se resbala" | "¿Si le bajo a 30 PSI, logro frenar 2 metros antes en la grava entrando a 20 km/h, o me sigo barriendo igual que a 50 PSI?" |
+| "Probar data augmentation" | "¿Realmente me ayuda rotar las fotos ±10° para bajar el error de validación en al menos 2 puntos, o solo estoy gastando GPU a lo loco?" |
+| "A ver si este modelo es mejor" | "¿Este ResNet-18 le gana al azar (baseline) y me da un **recall** de 0.90 en el test set, o de plano no sirve para detectar neumonía?" |
+
+### ¿Por qué forzar el "Sí" o "No"?
+
+No todas las preguntas en la vida son binarias, pero en el diseño de experimentos, la binarización es una herramienta de **supervivencia**. Si tu pregunta es abierta, te quedas con una observación; si es binaria, obtienes una **decisión**.
+
+1. **Exploración (Abierta):** "A ver qué pasa si muevo la presión". Sirve para ganar intuición y detectar patrones. Es el juego previo al experimento.
+2. **Confirmación (Binaria):** "¿30 PSI frenan mejor que 50 PSI?". Es el corazón del método científico. Establece un criterio de **falsabilidad**: si no frenas mejor, tu hipótesis era falsa y has aprendido algo concreto.
+
+> **Regla general** Explora de forma abierta para entender el terreno, pero experimenta de forma binaria para construir conocimiento sólido.
+
+
+## La estructura formal: $X \longrightarrow Y \mid Z$
+
+@huyen2022designing propone desglosar el problema en **input**, **output** y **función objetivo**. Para tu experimento de la bici o de ML, usa esta fórmula:
+
+$$
+\text{¿Cómo afecta } X \longrightarrow Y \mid Z?
+$$
+
+* **$X$ (Intervención):** Lo que cambias (Presión de llantas / Arquitectura del modelo).
+* **$Y$ (Outcome):** Lo que mides (Metros de derrape / Recall de Neumonía).
+* **$Z$ (Contexto):** Lo que dejas fijo (Misma curva y velocidad / Mismo dataset y split).
+
+::: {.callout-tip}
+## Plantilla a seguir
+> *"¿[Intervención X] mejora [métrica Y] en más de [umbral cuantitativo], bajo [condiciones Z], medido en [split/terreno específico]?"*
+:::
+
+### El "Cheat Sheet" de la Pregunta Perfecta
+
+Usa esta estructura para pasar de una idea vaga a una hipótesis de ingeniería.
+
+#### 1. El Objeto de Cambio ($X$)
+No digas "mejorar el modelo". Di: *"Cambiar la función de activación de ReLU a SiLU"* o *"Bajar la presión de 50 a 30 PSI"*.
+
+#### 2. La Vara de Medir ($Y$)
+No digas "que funcione mejor". Di: *"Reducir el MSE en un 10%"* o *"No derrapar en la curva"*. **Sin métrica no hay juicio.**
+
+#### 3. El Escenario de Control ($Z$)
+No digas "en general". Di: *"Usando el optimizador Adam con lr=1e-4"* o *"Entrando a la curva exactamente a 20 km/h"*. **Si el contexto cambia, el resultado es ruido.**
+
+## Checklist de Validación: ¿Tu pregunta es Ciencia o Deseo?
+
+Antes de lanzar el entrenamiento (o subirte a la bici), somete tu pregunta a este "filtro de rigor". Si respondes "No" a cualquiera, regresa a la fase de diseño.
+
+| Casilla de Verificación | Criterio de Aceptación |
+| :--- | :--- |
+| **¿Es binaria?** | ¿La respuesta final puede ser un "Sí" o un "No" rotundo? |
+| **¿Tiene un umbral?** | ¿Definiste un número específico (ej. 5 puntos, 2 metros, 0.90) para el éxito? |
+| **¿Es falsable?** | ¿Existe un resultado posible que te obligue a admitir que estabas equivocado? |
+| **¿Está aislada?** | ¿Estás cambiando una sola cosa ($X$) manteniendo todo lo demás ($Z$) quieto? |
+| **¿Es accionable?** | ¿El resultado te dice qué decisión tomar después (ej. cambiar llantas o arquitectura)? |
+
+
+## Ejemplo de validación en tiempo real
+
+**Estudiante:** *"Quiero ver si con Dropout el modelo generaliza mejor."* **Instructor (Tú):** *"Esa es una intención, no una pregunta. Vamos a pasarla por el filtro:"*
+
+```{mermaid}
+graph TD
+    V["Vago: Quiero ver si Dropout ayuda"] --> P["¿ Dropout (0.5) <br> reduce el Gap de Overfitting..."]
+    P --> M["...en más de 3 puntos porcentuales..."]
+    M --> Z["...bajo la misma arquitectura ResNet-18 <br> en el set de validación?"]
+    Z --> R["Pregunta Científica ✓"]
+
+    style V fill:#ffcccc,stroke:#333
+    style R fill:#ccffcc,stroke:#333,stroke-width:4px
+```
+
+::: {.callout-note}
+## El mantra del experimentador
+Si no puedes fallar, no puedes aprender. Una pregunta científica bien hecha es una trampa que le pones a la realidad para que te confiese la verdad.
+:::
+
+## Transformación práctica: De la rodilla raspada al código
+
+El problema original es: *"¿Cómo dejo de caerme en la grava?"*. Aplicando la estructura científica:
+
+> *"¿Reducir la presión a 30 PSI ($X$) me permite completar la curva sin caerme ($Y$) en 10 intentos consecutivos, manteniendo la velocidad a 20 km/h y usando el mismo tipo de llanta de fábrica ($Z$)?"*
+
+Esta precisión nos permite escribir código (o protocolos) que **verifican** la realidad en lugar de interpretarla subjetivamente:
+
+```{python}
+# La pregunta científica se convierte en código verificable.
+def verify_bicycle_hypothesis(experiment_results: dict) -> bool:
+    """
+    Verifica si la presión baja realmente estabilizó la bici.
+    
+    Hipótesis: 30 PSI permite 0 caídas a 20 km/h.
+    """
+    MAX_FALLS_ALLOWED = 0
+    TARGET_SPEED = 20
+
+    no_falls = experiment_results["falls_count"] <= MAX_FALLS_ALLOWED
+    speed_ok = experiment_results["average_speed"] >= TARGET_SPEED
+
+    print(f"Resultado: {experiment_results['falls_count']} caídas (Umbral: {MAX_FALLS_ALLOWED})")
+    print(f"Velocidad: {experiment_results['average_speed']} km/h (Mínimo: {TARGET_SPEED})")
+    
+    status = "SOSTENIDA ✓" if (no_falls and speed_ok) else "REFUTADA ✗"
+    print(f"\nHipótesis {status}")
+    
+    return no_falls and speed_ok
+```
+
+
+### El Salto Cuántico: De la Vaguedad al Rigor
+
+```{mermaid}
+graph TD
+    A["Problema Vago:<br>Me caigo mucho"] --> B{"Aplicar Estructura<br>X -> Y | Z"}
+    B --> C["Pregunta Científica:<br>¿30 PSI > 50 PSI?"]
+    C --> D["Protocolo Fijo:<br>10 vueltas a 20km/h"]
+    D --> E["Ejecución:<br>Recolección de datos"]
+    E --> F["Código de Verificación:<br>verify_hypothesis"]
+    F --> G{"¿Éxito?"}
+    G -->|Sí| H["Conocimiento:<br>30 PSI es el óptimo"]
+    G -->|No| I["Aprendizaje:<br>La presión no era el factor"]
+
+    style C fill:#f9f,stroke:#333
+    style F fill:#bbf,stroke:#333
+    style G fill:#fff,stroke:#333,stroke-width:4px
+```
+
+
+# Hipótesis
+
+## Qué es una hipótesis estadística: El "Beneficio de la Duda"
+
+@wasserman2004all define una hipótesis estadística como una afirmación sobre los parámetros de la distribución que genera los datos. @casella2002statistical formalizan esto con dos hipótesis complementarias:
+
+$$H_0: \text{no hay efecto (el azar explica todo)} \qquad H_1: \text{sí hay efecto}$$
+
+La lógica es asimétrica: **en la ciencia, eres inocente ($H_0$) hasta que los datos demuestren lo contrario ($H_1$)**. 
+
+* **En la bici:** Tu hipótesis nula ($H_0$) es que bajar la presión **no sirve de nada**. No rechazas $H_0$ porque "creas" que es verdadera, sino porque después de 10 vueltas sin caerte, la evidencia es tan aplastante que el azar ya no es una explicación razonable para tu éxito.
+
+## Hipótesis en ML: Definir el fracaso de antemano
+
+En ML aplicado, el equivalente estructural a la estadística formal es **definir qué resultado refutaría tu creencia**. No preguntamos "¿funciona este modelo?", sino "¿supera a este baseline de forma que la diferencia sea real?".
+
+::: {.callout-important}
+## Hipótesis del Proyecto Hilo Conductor (Rayos X)
+
+* **$H_0$:** La ResNet-18 es incapaz de alcanzar un $recall \geq 0.90$ para PNEUMONIA.
+* **$H_1$:** La ResNet-18 con fine-tuning alcanza un $recall \geq 0.90$.
+
+**Criterio de rechazo de $H_0$:** Obtener un recall en test $\geq 0.90$ **y** un AUC-ROC $> 0.50$ (para asegurar que el modelo es mejor que un volado).
+:::
+
+
+## Falsabilidad: El requisito de Popper
+
+@popper1959logic argumenta que una afirmación es científica solo si es **falsable**. Si no puedes definir un resultado que te haga decir "me equivoqué", no estás haciendo ciencia, estás haciendo dogma.
+
+
+
+| No falsable (Vago) | Falsable (Científico) | Análogo en la Bici |
+|---|---|---|
+| "Con más datos el modelo mejoraría" | "Duplicar el training set sube el AUC en $\geq 0.02$" | "Si entreno más, seré mejor" (Vago) |
+| "La arquitectura X es mejor" | "ResNet-18 supera a LogReg en AUC-ROC" | "Esta llanta es mejor que la otra" (Vago) |
+| "El modelo aprendió algo" | "El recall supera 0.90 en el test set" | "Pasé la curva sin caerme" (Falsable) |
+
+
+## El pecado de las comparaciones múltiples (Data Snooping)
+
+El Data Snooping (o "fisgoneo de datos") documentado en @hastie2009elements es como hacer trampa en un examen sin darte cuenta. En el contexto de la bicicleta, imagina que quieres probar cuál es la mejor presión para no caerte en la grava.
+
+**El problema: Torturar los datos hasta que confiesen**
+
+Si pruebas 100 presiones distintas (20.1 PSI, 20.2 PSI, etc.) y pasas por la curva una sola vez con cada una, eventualmente encontrarás una presión con la que no te caigas. Pero, ¿es porque esa presión es "mágica" o porque en ese intento específico tuviste suerte, no sopló el viento o entraste en un ángulo perfecto por puro azar?
+
+Si reportas esa única presión como "la solución científica", estás cometiendo Data Snooping. Has usado el resultado final (no caerte) para elegir tu configuración, invalidando el experimento. El éxito no es replicable; es solo ruido estadístico que elegiste a dedo.
+
+### La solución: El muro de fuego (Train/Val/Test)
+
+Para evitar el *Data Snooping*, dividimos nuestra experiencia en tres momentos sagrados:
+
+1.  **Entrenamiento (Training):** Es donde la bici "aprende". Aquí es donde ajustas los frenos y pedaleas.
+2.  **Validación (Validation):** Es tu "curva de práctica". Aquí pruebas las 100 presiones de llanta. Eliges la que mejor funcionó **aquí**.
+3.  **Prueba (Test):** Es una curva nueva, que nunca has visto, el día de la carrera. **Solo pasas una vez** con la presión que elegiste en el paso anterior.
+
+```{mermaid}
+graph TB
+    A[Dataset] --> B[Entrenamiento/Val]
+    A --> C["Test Set (Bloqueado)"]
+    B --> D{"¿Selección de<br>Mejor Modelo?"}
+    D -->|Se prueba una sola vez| C
+    C --> E["Resultado Final Honesto"]
+
+    style C fill:#f96,stroke:#333,stroke-width:2px
+    style E fill:#9f9,stroke:#333,stroke-width:2px
+    style D fill:#fff,stroke:#333,stroke-width:2px
+```
+
+
+```python
+# ❌ MAL: usar test para seleccionar el mejor modelo
+results = {}
+for lr in [0.001, 0.0001, 0.00001]:
+    model = train(lr=lr)
+    results[lr] = evaluate_on_test(model)   # test contamina la selección
+
+best_lr = max(results, key=results.get)
+# Este AUC está inflado. No es el error de generalización real.
+
+
+# ✅ BIEN: validación para selección, test solo al final
+val_results = {}
+for lr in [0.001, 0.0001, 0.00001]:
+    model = train(lr=lr)
+    val_results[lr] = evaluate_on_val(model)   # val para selección
+
+best_lr    = max(val_results, key=val_results.get)
+best_model = train(lr=best_lr)
+test_auc   = evaluate_on_test(best_model)      # test: una sola vez
+print(f"LR seleccionado en val  : {best_lr}")
+print(f"AUC en test (estimación honesta): {test_auc:.4f}")
+```
+
+
+
+# Ejercicio en vivo — Chat de Zoom {#ejercicio-zoom}
+
+Este ejercicio se realiza a la mitad de la sesión, en vivo durante la llamada. No requiere herramientas externas: las respuestas se escriben directamente en el **chat de Zoom**.
+
+## Instrucciones para el instructor
+
+1. Anunciar la pausa y pedir que todos cierren sus otros documentos.
+2. Mostrar la slide del ejercicio y dar **5 minutos** de tiempo individual.
+3. Pedir a todos que escriban sus respuestas en el chat **pero que no las envíen todavía**.
+4. Dar la señal para que todos publiquen al mismo tiempo (reduce el efecto de ancla).
+5. Leer 3–4 respuestas en voz alta y comparar con las de referencia.
+6. Dedicar 3 minutos a discutir los patrones de error más frecuentes.
+
+**Tiempo total del bloque:** 8–10 minutos.
+
+## Consigna para los participantes
+
+Completa la siguiente tabla para el **clasificador de neumonía** que construiremos esta semana. Escribe cada campo en una línea del chat de Zoom. El objetivo no es tener la respuesta perfecta: es detectar qué falta definir antes de abrir Colab.
+
+| Campo | Tu respuesta |
+|---|---|
+| **Pregunta científica** | ¿...? |
+| **Hipótesis $H_0$** | |
+| **Hipótesis $H_1$** | |
+| **Variable independiente** | |
+| **Variable dependiente** | |
+| **Métrica primaria con umbral numérico** | |
+| **Variables controladas** (mínimo 3) | |
+| **Baseline de comparación** | |
+| **¿Qué resultado refutaría $H_1$?** | |
+
+## Respuestas de referencia
+
+::: {.callout-tip}
+## Tabla completa del experimento baseline
+
+| Campo | Respuesta |
+|---|---|
+| **Pregunta científica** | "¿ResNet-18 [@he2016deep] con fine-tuning y $w_{pos}=2.0$ alcanza recall ≥ 0.90 en PNEUMONIA en el test set de @kermany2018identifying, con AUC-ROC > 0.50?" |
+| **$H_0$** | recall$_{	ext{PNEUMONIA}}$ < 0.90 |
+| **$H_1$** | recall$_{	ext{PNEUMONIA}}$ ≥ 0.90 |
+| **Variable independiente** | Arquitectura ResNet-18 + fine-tuning con pérdida ponderada $w_{pos}=2.0$ |
+| **Variable dependiente** | Recall de la clase PNEUMONIA en el test set |
+| **Métrica primaria** | Recall ≥ 0.90 (restricción clínica de mínimo de sensibilidad) |
+| **Variables controladas** | `seed=42`, split predefinido por @kermany2018identifying, `batch=32`, `lr=0.001`, `pytorch==2.2.1` |
+| **Baseline** | Clasificador de mayoría: siempre predice PNEUMONIA |
+| **Refuta $H_1$** | recall < 0.90 **o** AUC-ROC ≤ 0.50 en el test set |
+:::
+
+## Patrones de error frecuentes
+
+Estos son los errores más comunes al completar la tabla. El instructor los revisa en vivo leyendo las respuestas del chat.
+
+**Pregunta sin umbral numérico.** "¿ResNet-18 mejora la clasificación?" no es falsable porque no especifica cuánto es suficiente. @popper1959logic: sin criterio de refutación no hay experimento científico.
+
+**Variable independiente demasiado vaga.** "La arquitectura" o "el modelo" no es una variable independiente operacionalizable. Debe especificarse: qué modelo exacto, con qué pesos iniciales, con qué régimen de entrenamiento. @montgomery2017design llama a esto *operacionalización del factor*.
+
+**Semilla ausente en variables controladas.** Sin `seed` fijo, dos runs de "las mismas condiciones" producen resultados distintos. La semilla es la variable controlada más importante en cualquier experimento de ML [@pineau2021reproducibility].
+
+**Baseline no especificado.** "El modelo anterior" o "sin augmentation" son baselines implícitos. El baseline explícito más útil es siempre el clasificador trivial: si no lo superas, hay un problema fundamental en el pipeline [@burkov2020machine].
+
+**Sin criterio de refutación.** Si la respuesta a "¿qué resultado refutaría $H_1$?" es "ninguno" o está en blanco, la hipótesis no es falsable. Cualquier resultado puede "explicarse" a posteriori. Eso no produce conocimiento.
+
+---
+
+
+# Variables del experimento 
+
+## Tipos de variables: ¿Qué estás moviendo realmente?
+
+@montgomery2017design  establece una taxonomía de variables que separa el "ruido" de la "señal". En tu bicicleta, si quieres saber si la presión de las llantas afecta tu estabilidad, no puedes cambiar de marca de llantas a mitad de la prueba.
+
+| Tipo | Definición | Ejemplo en ML | Ejemplo en la Bici |
+|---|---|---|---|
+| **Independiente** | Lo que manipulas deliberadamente | Tasa de aprendizaje, arquitectura | **Presión de las llantas** (30 vs 50 PSI) |
+| **Dependiente** | Lo que mides como resultado | Recall, AUC-ROC | **Metros de derrape** o si te caíste |
+| **Controlada** | Lo que mantienes fijo | Semilla, Batch Size, Split | **Velocidad (20km/h)** y misma curva |
+| **Confusora** | Lo que varía y contamina | Orden de datos, Hardware | **Ráfagas de viento** o baches nuevos |
+
+## El problema del confounding: El enemigo invisible
+
+@montgomery2017design introduce el concepto de **variable confusora**: es ese factor "entrometido" que afecta el resultado sin que te des cuenta, haciendo imposible saber si ganaste por tu talento o por pura suerte.
+
+$$
+Y = f(X, \, C)
+$$
+
+Si el resultado $Y$ (no caerte) depende de tu intervención $X$ (bajar la presión) pero también de una confusora $C$ (que justo en esa vuelta entraste más lento por miedo), **tu experimento no vale nada**. No puedes saber si la presión te salvó o si fue tu precaución.
+
+```{mermaid}
+graph TD
+    subgraph "El Laboratorio (Controlado)"
+    Z[Variables Controladas:<br>Semilla, Dataset, Hardware]
+    end
+
+    subgraph "La Intervención"
+    X[Variable Independiente:<br>Arquitectura o LR]
+    end
+
+    subgraph "El Ruido (¡Peligro!)"
+    C((Variable Confusora:<br>Procesos aleatorios))
+    end
+
+    X & Z --> F{Modelo}
+    C -.->|Contamina| F
+    F --> Y[Variable Dependiente:<br>Métrica de éxito]
+
+    style C fill:#ff9999,stroke:#333,stroke-dasharray: 5 5
+    style X fill:#ccffcc,stroke:#333
+    style Z fill:#e1f5fe,stroke:#333
+```
+
+### El "Confounding" en el código
+En ML, la variable confusora más común es la **inicialización aleatoria**. Si comparas dos arquitecturas pero usas semillas distintas, podrías concluir que la ResNet-18 es mejor que la VGG-16, cuando en realidad solo tuvo "mejores pesos iniciales" por azar.
+
+::: {.callout-important}
+## Aislamiento de Variables
+Para que un experimento sea válido, el efecto observado en $Y$ debe ser atribuible **únicamente** a los cambios en $X$. En la bici, esto significa que si cambias la presión, tienes que obligarte a entrar a la curva con el mismo rigor y velocidad de siempre.
+:::
+
+```python
+import torch
+import numpy as np
+import random
+
+# ── Experimento CON confounding ─────────────────────────────────────────────
+# Ejecutar esto dos veces produce resultados distintos.
+# No se puede saber si la diferencia se debe a la arquitectura
+# o a la inicialización aleatoria de los pesos.
+
+model_a = torch.nn.Linear(512, 2)
+model_b = torch.nn.Linear(512, 2)
+
+print("Sin semilla — pesos iniciales del mismo modelo en dos instancias:")
+print(model_a.weight.data[0, :3])
+print(model_b.weight.data[0, :3])
+# Distintos en cada ejecución → resultados no reproducibles
+
+
+# ── Experimento SIN confounding ─────────────────────────────────────────────
+def set_seed(seed: int = 42) -> None:
+    """
+    Elimina el confounding por aleatoriedad fijando todas las semillas.
+    Ver: Pineau et al. (2021) NeurIPS Reproducibility Checklist.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark     = False
+
+set_seed(42)
+model_c = torch.nn.Linear(512, 2)
+
+set_seed(42)
+model_d = torch.nn.Linear(512, 2)
+
+print("<br>Con semilla fija — pesos iniciales del mismo modelo en dos instancias:")
+print(model_c.weight.data[0, :3])
+print(model_d.weight.data[0, :3])
+# Idénticos: el confounding ha sido eliminado
+```
+
+::: {.callout-warning}
+## Trampa frecuente: cambiar dos variables al mismo tiempo
+
+Si comparas ResNet-18 con `lr=0.001` contra ResNet-50 con `lr=0.0001`, no puedes saber si la diferencia se debe a la arquitectura o a la tasa de aprendizaje. @montgomery2017design llama a esto **confusión de factores**. La regla es: **cambiar una sola variable independiente por experimento**.
+:::
+
+## Variables del proyecto: El "Libro de Ruta" del experimento
+
+@burkov2020machine enfatiza que en ML aplicado, el protocolo experimental es tan importante como la arquitectura. En la analogía de la bicicleta, esto es tu **bitácora de mantenimiento**: si no anotas cuánta presión pusiste o qué tornillo apretaste, nunca podrás repetir esa vuelta perfecta.
+
+Antes de tocar el código, el protocolo debe estar blindado:
+
+| Variable | Tipo | Valor en el experimento (Baseline) | Análogo en la Bici |
+|---|---|---|---|
+| **Arquitectura** | Independiente | ResNet-18 (ImageNet weights) | Tipo de llanta (Tacos vs. Lisa) |
+| **Peso de clase** | Independiente | $w_{pos} = 2.0$ | Agresividad en el frenado |
+| **Tasa de aprendizaje**| Independiente | $\eta = 0.001$ | Cadencia de pedaleo |
+| **Recall PNEUMONIA** | Dependiente | **A medir** | ¿Me caí o no me caí? |
+| **Semilla aleatoria** | Controlada | `seed = 42` | Misma hora del día (luz fija) |
+| **Tamaño del batch** | Controlada | 32 imágenes | Peso de la mochila (fijo) |
+| **Versión software** | Controlada | PyTorch 2.2.1 | Marca de aceite de cadena |
+| **Hardware** | Confusora | NVIDIA T4 / RTX 4090 | Tipo de suelo (seco vs. húmedo) |
+
+@pineau2021reproducibility formalizan esta necesidad en el *Reproducibility Checklist* de NeurIPS. La regla es simple: **Cualquier variable que no documentes se convierte automáticamente en una sospechosa (confusora) si el experimento falla.**
+
+
+## El Contrato del Experimento: `protocol.yaml`
+
+Para evitar la tentación de cambiar cosas sobre la marcha (el famoso "le moví tantito al código y ya dio"), usamos un archivo de configuración. Es el **contrato** que firmas contigo mismo antes de empezar.
+
+```yaml
+# protocol.yaml — documenta el protocolo antes de ejecutar
+experiment_id: exp_001_baseline_resnet
+date: "2026-04-13"
+hypothesis: "ResNet-18 fine-tuned alcanza recall >= 0.90 en test"
+
+data:
+  dataset: "Chest X-Ray Images (Kermany 2018)"
+  split: "predefinida (vía DVC)"
+  train_n: 5216
+  test_n: 624
+
+model:
+  architecture: resnet18
+  pretrained: true
+  freeze_backbone: true # Congelamos para aislar el efecto del clasificador
+
+training:
+  seed: 42             # Nuestra ancla de reproducibilidad
+  epochs: 20
+  batch_size: 32
+  lr: 0.001
+  pos_weight: 2.0      # Penalizamos más el falso negativo (costo clínico)
+  hardware: "NVIDIA T4"
+  pytorch_version: "2.2.1"
+
+evaluation:
+  primary_metric: recall_pneumonia
+  threshold: 0.5
+  test_used: false     # BLOQUEADO hasta el final (Muro de Fuego)
+```
+
+### Por qué el Hardware es una "Variable Confusora"
+
+Parece trivial, pero @pineau2021reproducibility advierte que el hardware puede afectar los resultados debido a la precisión de punto flotante y las implementaciones no deterministas de los kernels de CUDA. 
+
+> **En la Bici:** Es como si un día haces la prueba en una bici de fibra de carbono y otro en una de acero. Aunque la presión de las llantas ($X$) sea la misma, el peso del cuadro ($C$) confundirá tus conclusiones sobre la estabilidad. **Documenta siempre tu GPU.**
+
+```{mermaid}
+graph TD
+    A[Protocolo YAML] --> B{¿Está firmado?}
+    B -->|Sí| C[Ejecución en Script]
+    B -->|No| D[¡ALTO! Sesgo potencial]
+    C --> E[Logs de MLflow/W&B]
+    E --> F[Análisis de Resultados]
+
+    style A fill:#e1f5fe,stroke:#01579b
+    style B fill:#fff9c4,stroke:#fbc02d
+    style E fill:#c8e6c9,stroke:#2e7d32
+```
+
+
+## Diseño de Experimentos (DoE): metodología completa
+
+El **Diseño de Experimentos** (*Design of Experiments*, DoE) es un método sistemático para planificar, ejecutar y analizar experimentos de forma que se comprenda cómo los factores de entrada (variables independientes) influyen sobre la variable respuesta (variable dependiente), usando el menor número posible de runs [@montgomery2017design].
+
+La ventaja frente al enfoque *one-factor-at-a-time* (OFAT) —variar un factor mientras se fijan todos los demás— es doble: DoE es más **eficiente** (menos experimentos para la misma información) y es el único método capaz de detectar **interacciones** entre factores.
+
+::: {.callout-important}
+## OFAT vs. DoE: ejemplo concreto con el proyecto
+
+Supón que quieres explorar `lr` ∈ {0.001, 0.0001} y `batch_size` ∈ {16, 32, 64}.
+
+- **OFAT:** fijas `batch=32` y varías `lr` (2 runs), luego fijas `lr=0.001` y varías `batch` (3 runs) = 5 runs totales. **Invisible:** ¿qué pasa con `lr=0.0001` y `batch=16`?
+- **DoE factorial completo:** 2 × 3 = 6 runs. Captura **todas** las combinaciones, incluyendo la interacción lr × batch_size que OFAT nunca vería.
+:::
+
+### Las cuatro fases de un proyecto DoE
+
+@montgomery2017design estructura todo proyecto experimental en cuatro fases secuenciales. Saltarse cualquiera (especialmente la planificación) invalida la validez de los datos que recojas después.
+
+---
+
+#### Fase 1 — Planificación
+
+Es el momento de "congelar" el mundo. Antes de tocar los datos o subirte a la bici, debes decidir qué es lo que vas a observar y bajo qué límites. Es formular la pregunta científica con rigor.
+
+| Decisión | Proyecto Rayos X (ML) | Proyecto Estabilidad (Bici) |
+|---|---|---|
+| **Problema** | Clasificar neumonía con recall ≥ 0.90 | Tomar la curva de grava sin derrapar |
+| **Variable respuesta** | `recall_pneumonia` en el test set | Metros de derrape (o caída Sí/No) |
+| **Factores candidatos** | `lr`, `batch_size`, `pos_weight`, `dropout` | Presión, velocidad, tipo de llanta, peso |
+| **Restricciones** | ≤ 30 min por entrenamiento en Colab | Luz de día (para ver bien) y energía física |
+
+---
+
+#### Fase 2 — Screening (El filtro de lo importante)
+
+Cuando tienes demasiados factores (≥ 5), no es práctico ni eficiente probar todas las combinaciones posibles. El **screening** sirve para separar "los pocos vitales de los muchos triviales". Usamos diseños rápidos para ver qué variables realmente mueven la aguja.
+
+**En la Bici:** Imagina que sospechas de 10 cosas: la presión, el color del casco, la marca de los calcetines, la velocidad, el tipo de aceite... En el **Screening**, haces un par de pasadas rápidas y te das cuenta de que el color del casco no afecta el derrape, pero la presión sí. **Descartas lo irrelevante.**
+
+**En nuestro proyecto de ML:**
+No vamos a probar 100 arquitecturas diferentes si ni siquiera sabemos si el `pos_weight` hace una diferencia. Hacemos corridas cortas (pocas épocas) para identificar los factores con **efecto significativo**.
+
+##### Ejemplo Práctico: Screening en la Bicicleta
+
+Tienes 6 sospechosos (factores) de por qué te barres en la grava. Hacer un experimento completo con todas las combinaciones de estos 6 factores requeriría $2^6 = 64$ pasadas por la curva. **Demasiado riesgo.**
+
+###### 1. Identificación de factores (La lista larga)
+* **A:** Presión de llantas (30 vs 50 PSI).
+* **B:** Velocidad de entrada (15 vs 25 km/h).
+* **C:** Posición del cuerpo (Sentado vs Parado).
+* **D:** Color de los calcetines (Rojo vs Azul).
+* **E:** Marca de la cadena (Shimano vs KMC).
+* **F:** Uso de guantes (Con vs Sin).
+
+###### 2. El Experimento de Screening
+Haces solo **8 pasadas estratégicas** (usando algo llamado *Diseño Factorial Fraccionado*). No buscas la perfección, buscas descartar basura.
+
+**Resultados del Screening:**
+
+* **Presión (A) y Velocidad (B):** Cambiaron radicalmente la distancia de derrape.
+* **Posición (C):** Afectó un poco, pero no fue crítico.
+* **Calcetines, Cadena y Guantes (D, E, F):** No tuvieron **ningún efecto medible** en la tracción.
+
+
+
+###### 3. Conclusión del Screening
+"Limpia" tu experimento. Para la siguiente fase (Optimización), **congelas** los calcetines, la cadena y los guantes (variables controladas) y te enfocas solo en el "Dúo Dinámico": **Presión y Velocidad**.
+
+##### ¿Cómo se traduce esto a tu proyecto de Rayos X?
+
+En lugar de calcetines, tienes hiperparámetros. 
+
+* **Screening de ML:** Corres 5 épocas rápidas variando la `Arquitectura`, el `Optimizado`, el `Color de fondo de la UI` y el `Nombre del archivo`. 
+* **Resultado:** Te das cuenta de que el nombre del archivo y el color de la UI no afectan el **Recall**. Los tiras a la basura y te quedas solo con la `Arquitectura` y el `Learning Rate` para el experimento serio.
+
+
+::: {.callout-tip}
+## El objetivo del Screening
+No es encontrar el valor óptimo, es **reducir la dimensión del problema**. Es pasar de "¿Qué rayos pasó?" a "Sé que el problema está entre estos dos culpables".
+:::
+
+```{mermaid}
+graph TD
+    A["Todos los Factores Candidatos <br> (lr, batch, dropout, aug, seed, opt...)"] --> B[Experimentos Rápidos / Screening]
+    B --> C{¿Afecta la métrica?}
+    C -->|No| D[Factores Triviales: Se fijan o descartan]
+    C -->|Sí| E["Factores Vitales: Pasan a la Fase 3 <br> (Optimización)"]
+
+    style B fill:#fff9c4,stroke:#fbc02d
+    style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+```
+
+::: {.callout-note}
+## Por qué hacer Screening
+El screening te ahorra dinero y tiempo. En ML, esto significa no gastar créditos de GPU en optimizar un hiperparámetro que, al final del día, solo cambia el resultado en un 0.001%.
+:::
+```python
+# Ejemplo de screening: 6 factores candidatos en nuestro proyecto
+# ¿Cuáles realmente mueven el recall?
+
+import itertools
+import pandas as pd
+
+# Definir los factores y sus niveles para screening
+screening_factors = {
+    "lr":              [0.001, 0.00001],       # 2 niveles: alto vs. bajo
+    "batch_size":      [16, 64],               # 2 niveles: pequeño vs. grande
+    "pos_weight":      [1.5, 3.0],             # 2 niveles: poco vs. muy ponderado
+    "freeze_backbone": [True, False],          # 2 niveles: congelado vs. fine-tuning
+    "dropout":         [0.2, 0.5],             # 2 niveles: poco vs. mucho
+    "augmentation":    ["none", "moderate"],   # 2 niveles: sin vs. con aumentación
+}
+
+# Diseño factorial completo: 2^6 = 64 runs (costoso)
+full_factorial = list(itertools.product(*screening_factors.values()))
+print(f"Factorial completo: {len(full_factorial)} runs")
+
+# Diseño fraccional 2^(6-2) = 16 runs (práctica en screening)
+# Se construye manualmente o con librerías como pyDOE2
+# pip install pyDOE2
+from pyDOE2 import fracfact
+import numpy as np
+
+# Diseño fraccional con generadores estándar para 6 factores
+design_matrix = fracfact("a b c d e f")  # Resolución IV
+runs = pd.DataFrame(design_matrix, columns=list(screening_factors.keys()))
+# Convertir de -1/+1 a los valores reales
+for factor, levels in screening_factors.items():
+    runs[factor] = runs[factor].map({-1: levels[0], 1: levels[1]})
+
+print(f"<br>Diseño fraccional 2^(6-2): {len(runs)} runs")
+print(runs.to_string(index=False))
+```
+
+#### Fase 3 — Optimización
+
+Una vez que el *Screening* limpió el ruido y te dejó solo con los "pocos vitales" (típicamente 2–4 factores), entramos en la fase de sintonía fina. Aquí no solo queremos saber si un factor afecta, queremos encontrar el **punto exacto** donde el rendimiento es máximo.
+
+**En la Bici:**
+Ya sabes que lo único que importa es la **Presión** y la **Velocidad**. Ahora haces un mapa de calor: ¿Cuál es la presión exacta para esa velocidad? Construyes una "superficie de respuesta" donde el pico es tu estabilidad máxima.
+
+**En nuestro proyecto de ML:**
+Si el screening nos dijo que el `Learning Rate` y el `Batch Size` son los que mandan, ahora ejecutamos un diseño denso (como un *Grid Search* fino o una *Optimización Bayesiana*) para encontrar la combinación que maximice el **Recall**.
+
+
+
+```{mermaid}
+graph TD
+    A["Factores Vitales <br> (Ej: LR y Batch Size)"] --> B["Diseño Experimental Denso <br> (Superficie de Respuesta)"]
+    B --> C["Ajuste de Modelo Matemático <br> (Regresión)"]
+    C --> D["Localización del Óptimo <br> (El 'Sweet Spot')"]
+    D --> E["Configuración Ganadora"]
+
+    style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+```
+
+::: {.callout-tip}
+## El entregable de esta fase
+No es solo "un mejor modelo", es una **función matemática** que te dice: "Si mueves X tanto, Y reaccionará así". Es el nivel más alto de control sobre tu experimento.
+:::
+
+```python
+# Después del screening, supongamos que los factores significativos son:
+# lr, pos_weight y freeze_backbone
+
+# Diseño Box-Behnken para optimización (3 factores, 3 niveles)
+# Evalúa dependencias no lineales sin necesidad de factorial completo 3^3 = 27
+from pyDOE2 import bbdesign
+
+bb_matrix = bbdesign(3, center=1)   # 3 factores → 13 runs (vs. 27 del factorial completo)
+
+# Mapear de [-1, 0, 1] a valores reales
+factor_ranges = {
+    "lr":         [0.00001, 0.0005, 0.001],    # bajo, medio, alto
+    "pos_weight": [1.5, 2.25, 3.0],            # bajo, medio, alto
+    "dropout":    [0.2,  0.35, 0.5],           # bajo, medio, alto
+}
+level_map = {-1: 0, 0: 1, 1: 2}   # índice en la lista de niveles
+
+runs_opt = pd.DataFrame(bb_matrix, columns=list(factor_ranges.keys()))
+for factor, levels in factor_ranges.items():
+    runs_opt[factor] = runs_opt[factor].map(
+        {-1.0: levels[0], 0.0: levels[1], 1.0: levels[2]}
+    )
+
+print(f"Box-Behnken: {len(runs_opt)} runs (vs. 27 del factorial 3^3)")
+print(runs_opt)
+
+# Después de ejecutar los runs, ajustar el modelo de regresión cuadrática:
+# recall = b0 + b1*lr + b2*pos_weight + b3*dropout
+#        + b12*lr*pos_weight + b13*lr*dropout + b23*pos_weight*dropout
+#        + b11*lr^2 + b22*pos_weight^2 + b33*dropout^2
+# y buscar el máximo de recall analíticamente o con scipy.optimize
+```
+
+#### Fase 4 — Verificación
+
+Una vez que el modelo de regresión predice la configuración óptima, se ejecuta **un experimento de confirmación** con esa configuración para verificar que el desempeño predicho coincide con el observado. Si no coincide dentro de un intervalo razonable, el modelo de regresión tiene deficiencias (interacciones no modeladas, no linealidades, etc.).
+
+```python
+# Fase de verificación: ejecutar la configuración óptima predicha
+# y comparar con la predicción del modelo de regresión
+
+def verification_run(optimal_config: dict, model_prediction: float,
+                     tolerance: float = 0.03) -> bool:
+    """
+    Ejecuta el experimento de confirmación y verifica si la predicción
+    del modelo de regresión es correcta dentro de la tolerancia.
+
+    Args:
+        optimal_config: Configuración óptima encontrada en Fase 3.
+        model_prediction: Recall predicho por el modelo de regresión.
+        tolerance: Diferencia máxima aceptable entre predicho y observado.
+
+    Returns:
+        True si la verificación pasa, False si el modelo es inadecuado.
+    """
+    # Entrenar y evaluar con la configuración óptima
+    observed_recall = train_and_evaluate(optimal_config)
+
+    error = abs(observed_recall - model_prediction)
+    passed = error <= tolerance
+
+    print(f"Recall predicho:  {model_prediction:.4f}")
+    print(f"Recall observado: {observed_recall:.4f}")
+    print(f"Error absoluto:   {error:.4f} (tolerancia: {tolerance})")
+    print(f"Verificación: {'PASA ✓' if passed else 'FALLA ✗ — revisar modelo'}")
+
+    if not passed:
+        print("Posibles causas: interacciones no modeladas, "
+              "no linealidades no capturadas, o extrapolación.")
+    return passed
+
+# Ejemplo de uso
+optimal_config = {"lr": 0.0008, "pos_weight": 2.7, "dropout": 0.3,
+                  "freeze_backbone": False}
+verification_run(optimal_config, model_prediction=0.934)
+```
+
+### Los cinco diseños experimentales
+
+La elección del diseño depende de cuántos factores se tienen, en qué fase del proceso se está y qué tipo de efectos se quieren capturar.
+
+#### 1. Factorial completo (Full Factorial)
+
+Prueba **todas las combinaciones** de todos los factores y niveles. Captura efectos principales e interacciones de cualquier orden. El número de runs crece exponencialmente: $2^k$ para $k$ factores con 2 niveles cada uno.
+
+```python
+# Factorial completo 2^3: lr × batch_size × pos_weight
+# 2 niveles × 3 factores = 8 runs
+
+import itertools
+import pandas as pd
+
+factors = {
+    "lr":         [0.001,  0.0001],
+    "batch_size": [16,     32    ],
+    "pos_weight": [1.5,    3.0   ],
+}
+
+full_factorial = list(itertools.product(*factors.values()))
+df_full = pd.DataFrame(full_factorial, columns=factors.keys())
+df_full.index = [f"Run {i+1}" for i in range(len(df_full))]
+print(f"Factorial completo 2^3: {len(df_full)} runs<br>")
+print(df_full.to_string())
+
+# Run 1:  lr=0.001,  batch=16, pos_weight=1.5
+# Run 2:  lr=0.001,  batch=16, pos_weight=3.0
+# Run 3:  lr=0.001,  batch=32, pos_weight=1.5
+# ...
+# Run 8:  lr=0.0001, batch=32, pos_weight=3.0
+# → Captura la interacción lr × pos_weight que OFAT no puede ver
+```
+
+**Cuándo usarlo:** $k \leq 4$ factores, recursos computacionales disponibles para $2^k$ runs, fase de optimización o cuando se sospechan interacciones importantes.
+
+**En nuestro proyecto:** si el screening dejó 3 factores significativos, el factorial completo $2^3 = 8$ runs es perfectamente manejable en Colab.
+
+#### 2. Factorial fraccional (Fractional Factorial)
+
+Ejecuta solo una **fracción** del factorial completo ($2^{k-p}$ runs en lugar de $2^k$), sacrificando la capacidad de distinguir algunas interacciones de alto orden (que en la práctica suelen ser despreciables) a cambio de eficiencia.
+
+La **resolución** del diseño indica qué efectos quedan confundidos (*aliased*):
+
+| Resolución | Qué significa | Cuándo usarla |
+|---|---|---|
+| **III** | Efectos principales confundidos con interacciones de 2 factores | Solo screening muy preliminar |
+| **IV** | Efectos principales libres; interacciones de 2 factores entre sí | Screening con muchos factores |
+| **V** | Efectos principales e interacciones de 2 factores libres | Fase intermedia o confirmación |
+
+```python
+# Factorial fraccional 2^(6-2) para screening: 16 runs en lugar de 64
+# Resolución IV: efectos principales no confundidos con interacciones de 2 factores
+
+# pip install pyDOE2
+from pyDOE2 import fracfact
+import pandas as pd
+import numpy as np
+
+# 6 factores: a=lr, b=batch_size, c=pos_weight, d=freeze, e=dropout, f=augmentation
+# Generadores: e=abc, f=bcd → Resolución IV
+design = fracfact("a b c d e f")   # pyDOE2 elige generadores automáticamente
+
+factor_names  = ["lr", "batch_size", "pos_weight",
+                 "freeze_backbone", "dropout", "augmentation"]
+factor_levels = {
+    "lr":             {-1: 0.00001, 1: 0.001},
+    "batch_size":     {-1: 16,      1: 64   },
+    "pos_weight":     {-1: 1.5,     1: 3.0  },
+    "freeze_backbone":{-1: False,   1: True },
+    "dropout":        {-1: 0.2,     1: 0.5  },
+    "augmentation":   {-1: "none",  1: "moderate"},
+}
+
+df_frac = pd.DataFrame(design, columns=factor_names)
+for col in factor_names:
+    df_frac[col] = df_frac[col].map(factor_levels[col])
+
+df_frac.index = [f"Run {i+1}" for i in range(len(df_frac))]
+print(f"Factorial fraccional 2^(6-2): {len(df_frac)} runs (vs. 64 del completo)")
+print(df_frac.to_string())
+```
+
+#### 3. Plackett-Burman
+
+Diseño especialmente eficiente para **screening con muchos factores** (hasta $k = N-1$ factores en $N$ runs, donde $N$ es múltiplo de 4). Solo captura efectos principales —no interacciones— por lo que es el más económico posible para identificar los factores relevantes antes de profundizar.
+
+```python
+# Plackett-Burman para 11 factores en 12 runs
+# Ideal cuando hay muchos hiperparámetros y se quiere un primer filtro rápido
+
+from pyDOE2 import pbdesign
+import pandas as pd
+
+# 11 factores, 12 runs (Plackett-Burman más cercano a 11)
+pb_matrix = pbdesign(11)
+print(f"Plackett-Burman: {pb_matrix.shape[0]} runs para {pb_matrix.shape[1]} factores")
+
+factor_names_pb = [
+    "lr", "batch_size", "pos_weight", "freeze_backbone", "dropout",
+    "augmentation", "weight_decay", "optimizer", "scheduler",
+    "image_size", "norm_type"
+]
+factor_levels_pb = {
+    "lr":           {-1: 0.00001, 1: 0.001},
+    "batch_size":   {-1: 16,      1: 64   },
+    "pos_weight":   {-1: 1.0,     1: 3.0  },
+    "freeze_backbone": {-1: False, 1: True },
+    "dropout":      {-1: 0.1,     1: 0.5  },
+    "augmentation": {-1: "none",  1: "heavy"},
+    "weight_decay": {-1: 0.0,     1: 0.01 },
+    "optimizer":    {-1: "SGD",   1: "AdamW"},
+    "scheduler":    {-1: "none",  1: "cosine"},
+    "image_size":   {-1: 128,     1: 224  },
+    "norm_type":    {-1: "batch", 1: "layer"},
+}
+
+df_pb = pd.DataFrame(pb_matrix, columns=factor_names_pb)
+for col in factor_names_pb:
+    df_pb[col] = df_pb[col].map(factor_levels_pb[col])
+
+print(df_pb.to_string(index=False))
+# Solo 12 experimentos para filtrar 11 factores
+# → usar los resultados para seleccionar los 3-4 más importantes
+```
+
+#### 4. Box-Behnken
+
+Diseño de **superficie de respuesta** para 3 niveles por factor (–1, 0, +1) que evita los corners del espacio experimental (las combinaciones extremas de todos los factores simultáneamente). Es más eficiente que el factorial completo $3^k$ y es ideal cuando las esquinas del diseño serían experimentalmente costosas o imposibles.
+
+```python
+# Box-Behnken para 3 factores: lr, pos_weight, dropout
+# 13 runs vs. 27 del factorial completo 3^3
+
+from pyDOE2 import bbdesign
+import pandas as pd
+
+bb = bbdesign(3, center=1)   # 3 factores, 1 punto central (por replicación)
+
+factor_names_bb  = ["lr", "pos_weight", "dropout"]
+factor_levels_bb = {
+    "lr":         {-1: 0.00001, 0: 0.0005, 1: 0.001},
+    "pos_weight": {-1: 1.5,     0: 2.25,   1: 3.0  },
+    "dropout":    {-1: 0.2,     0: 0.35,   1: 0.5  },
+}
+
+df_bb = pd.DataFrame(bb, columns=factor_names_bb)
+for col in factor_names_bb:
+    df_bb[col] = df_bb[col].map(factor_levels_bb[col])
+
+df_bb.index = [f"Run {i+1}" for i in range(len(df_bb))]
+print(f"Box-Behnken: {len(df_bb)} runs (vs. 27 del factorial 3^3)<br>")
+print(df_bb.to_string())
+
+# NOTA: Box-Behnken NO incluye las esquinas (todos los factores en nivel extremo
+# simultáneamente), lo que lo hace más eficiente pero significa que no estima
+# bien el comportamiento en los extremos del espacio experimental.
+```
+
+#### 5. Composite Central (CCD)
+
+Similar al Box-Behnken pero **sí incluye los puntos axiales** (fuera del cubo), lo que permite estimar mejor el comportamiento en los extremos del espacio. Es el diseño de superficie de respuesta más utilizado en optimización de procesos.
+
+```python
+# Central Composite Design (CCD) para 2 factores: lr y pos_weight
+# Face-centered (alpha=1): los puntos axiales están en las caras del cubo
+
+from pyDOE2 import ccdesign
+import pandas as pd
+import numpy as np
+
+ccd = ccdesign(2, center=(1, 1), alpha="faced", face="ccf")
+
+factor_names_ccd  = ["lr", "pos_weight"]
+factor_levels_ccd = {
+    "lr":         {-1: 0.00001, 0: 0.0005, 1: 0.001},
+    "pos_weight": {-1: 1.5,     0: 2.25,   1: 3.0  },
+}
+
+df_ccd = pd.DataFrame(ccd, columns=factor_names_ccd)
+for col in factor_names_ccd:
+    # Redondear para evitar problemas de punto flotante con el map
+    df_ccd[col] = df_ccd[col].round(6).map(factor_levels_ccd[col])
+
+df_ccd.index = [f"Run {i+1}" for i in range(len(df_ccd))]
+print(f"CCD face-centered: {len(df_ccd)} runs<br>")
+print(df_ccd.to_string())
+```
+
+### Tabla comparativa de diseños
+
+| Diseño | Factores | Runs (ejemplo) | Captura interacciones | Fase ideal |
+|---|---|---|---|---|
+| **Factorial completo** | $k \leq 4$ | $2^3 = 8$ | Todas (2, 3, ..., k) | Optimización |
+| **Factorial fraccional** | $4 \leq k \leq 10$ | $2^{6-2} = 16$ | Algunas (según resolución) | Screening |
+| **Plackett-Burman** | $k \leq N-1$ | 12 para 11 factores | Solo efectos principales | Screening masivo |
+| **Box-Behnken** | $3 \leq k \leq 7$ | 13 para 3 factores | Cuadráticas (no esquinas) | Optimización |
+| **CCD** | $2 \leq k \leq 5$ | 9 para 2 factores | Cuadráticas + esquinas | Optimización final |
+
+::: {.callout-tip}
+## Flujo completo DoE aplicado al clasificador de neumonía
+
+1. **Planificación:** pregunta científica + 6 factores candidatos (lr, batch, pos_weight, freeze, dropout, augmentation).
+2. **Screening (Plackett-Burman, 12 runs):** identificar los 3 factores con mayor impacto sobre recall.
+3. **Optimización (Box-Behnken, 13 runs):** construir modelo de regresión cuadrática sobre esos 3 factores y encontrar la configuración óptima.
+4. **Verificación (1 run):** confirmar que la configuración óptima alcanza recall ≥ 0.90.
+
+Total: **26 runs** vs. los **192 runs** que requeriría explorar los 6 factores con 2 niveles cada uno en factorial completo ($2^6 \times$ algunas réplicas). Reducción del **86%**.
+:::
+
+
+## Principios de robustez experimental
+
+Las etapas anteriores definen *qué* hacer. Los principios que siguen definen *cómo* hacerlo de forma que los resultados sean confiables. @montgomery2017design los establece como los tres pilares del diseño experimental clásico; aquí los traducimos al lenguaje de ML.
+
+### Aleatorización
+
+La **aleatorización** garantiza independencia entre runs, neutralizando el efecto de variables no controladas como el calentamiento del sistema, el orden de los datos en memoria o la inicialización aleatoria de los pesos.
+
+En ML opera en dos niveles: (1) **inicialización de pesos** —semillas distintas entre runs comparados para que la diferencia no se deba a una inicialización afortunada— y (2) **orden de mini-batches** —el shuffle del DataLoader garantiza que el modelo no vea los datos siempre en el mismo orden, lo que introduciría un sesgo sistemático en los gradientes.
+
+```python
+import torch
+from torch.utils.data import DataLoader, Dataset
+
+def get_dataloader_with_seed(dataset: Dataset, batch_size: int,
+                              seed: int, shuffle: bool = True) -> DataLoader:
+    """
+    DataLoader con generador de aleatoriedad controlado.
+    El seed del generator es independiente de la semilla global del modelo,
+    permitiendo aleatorización reproducible del orden de datos
+    sin afectar la inicialización de pesos.
+    """
+    generator = torch.Generator()
+    generator.manual_seed(seed)
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        generator=generator,
+        num_workers=4,
+        pin_memory=True,
+    )
+
+# Cada run usa una semilla distinta para el shuffle,
+# pero la misma semilla para la inicialización del modelo.
+train_loader_run1 = get_dataloader_with_seed(train_dataset, 32, seed=100)
+train_loader_run2 = get_dataloader_with_seed(train_dataset, 32, seed=200)
+```
+
+### Replicación
+
+La **replicación** consiste en repetir el mismo experimento varias veces para promediar el efecto de los factores no controlables y obtener una estimación del error experimental. Una sola ejecución de un modelo de ML no es suficiente para concluir nada: la varianza por inicialización aleatoria puede ser del mismo orden que la mejora que se intenta medir.
+
+@hastie2009elements formalizan esto a través de la descomposición bias-varianza: el error de un estimador tiene un componente de varianza que solo puede cuantificarse con múltiples runs. Sin replicación, no sabemos si el resultado observado es típico o un caso extremo de la distribución.
+
+```python
+from typing import List, Dict
+import numpy as np
+
+def replicated_experiment(train_fn, eval_fn,
+                           n_replicas: int = 5,
+                           base_seed: int = 42) -> Dict[str, float]:
+    """
+    Ejecuta el mismo experimento n_replicas veces con semillas distintas
+    y reporta media +/- std de cada métrica.
+    """
+    all_metrics: List[Dict] = []
+
+    for i in range(n_replicas):
+        seed = base_seed + i
+        model   = train_fn(seed=seed)
+        metrics = eval_fn(model)
+        all_metrics.append(metrics)
+        print(f"  Replica {i+1}/{n_replicas} | recall={metrics['recall_pneumonia']:.4f}")
+
+    keys = all_metrics[0].keys()
+    summary = {}
+    for k in keys:
+        vals = [m[k] for m in all_metrics]
+        summary[f"{k}_mean"] = float(np.mean(vals))
+        summary[f"{k}_std"]  = float(np.std(vals))
+        print(f"{k}: {summary[f"{k}_mean"]:.4f} +/- {summary[f"{k}_std"]:.4f}")
+
+    return summary
+
+# Regla práctica: si std(recall) > 0.02 entre replicas,
+# el experimento necesita más datos o más epocas de entrenamiento.
+```
+
+### Blocking (estratificación de datos)
+
+El **blocking** es la práctica de dividir los datos en segmentos homogéneos para reducir la variabilidad dentro de cada comparación. En ML se materializa directamente en la **división estratificada train/val/test**: si el dataset tiene clases desbalanceadas y la división no es estratificada, el conjunto de validación puede tener una proporción de clases muy diferente a la de entrenamiento, haciendo que las métricas de validación sean un estimador sesgado.
+
+```python
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+def stratified_split(file_paths, labels,
+                      val_size=0.15, test_size=0.15,
+                      seed=42):
+    """Division estratificada train/val/test.
+    Garantiza la misma proporcion de clases en los tres splits
+    (blocking por clase), eliminando el sesgo de muestreo.
+    """
+    X_trainval, X_test, y_trainval, y_test = train_test_split(
+        file_paths, labels,
+        test_size=test_size,
+        stratify=labels,      # blocking por clase
+        random_state=seed,
+    )
+    val_ratio = val_size / (1.0 - test_size)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_trainval, y_trainval,
+        test_size=val_ratio,
+        stratify=y_trainval,  # blocking por clase
+        random_state=seed,
+    )
+    for name, y in [("train", y_train), ("val", y_val), ("test", y_test)]:
+        print(f"{name:6s}: n={len(y):5d} | tasa positiva={np.mean(y):.3f}")
+    return X_train, X_val, X_test, y_train, y_val, y_test
+```
+
+::: {.callout-warning}
+## El dataset de @kermany2018identifying tiene un problema de blocking
+
+El conjunto de validación original contiene solo **16 imágenes** (8 por clase), estadísticamente insuficiente para selección de hiperparámetros. En el workshop crearemos nuestra propia división estratificada sobre el conjunto de entrenamiento original, usando un 15% para validación.
+:::
+
+### Validación cruzada k-fold
+
+@hastie2009elements muestran que la **validación cruzada** con $k$ folds es un estimador casi insesgado del error de generalización para $k$ entre 5 y 10. En lugar de un split fijo, los datos se particionan $k$ veces; cada fold actúa una vez como validación y $k-1$ veces como entrenamiento. El estimador final es la media ± std del error entre los $k$ folds.
+
+```{mermaid}
+flowchart LR
+    subgraph "5-Fold Cross-Validation"
+        direction TB
+        F1["Fold 1: Val | Tr | Tr | Tr | Tr"]
+        F2["Fold 2: Tr | Val | Tr | Tr | Tr"]
+        F3["Fold 3: Tr | Tr | Val | Tr | Tr"]
+        F4["Fold 4: Tr | Tr | Tr | Val | Tr"]
+        F5["Fold 5: Tr | Tr | Tr | Tr | Val"]
+    end
+    subgraph "Estimacion"
+        R["Error = mean +/- std<br>de 5 folds"]
+    end
+    F1 & F2 & F3 & F4 & F5 --> R
+```
+
+```python
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_auc_score
+import numpy as np
+
+def cross_validate_model(build_fn, train_fn, X, y,
+                          n_folds=5, seed=42):
+    """
+    Validacion cruzada estratificada.
+    Estimacion robusta del AUC-ROC cuando el dataset es pequeno.
+    """
+    skf  = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
+    aucs = []
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+        model = build_fn()
+        train_fn(model, X[train_idx], y[train_idx])
+        probs = model.predict_proba(X[val_idx])[:, 1]
+        auc   = roc_auc_score(y[val_idx], probs)
+        aucs.append(auc)
+        print(f"  Fold {fold+1}/{n_folds} | AUC-ROC: {auc:.4f}")
+    print(f"AUC-ROC: {np.mean(aucs):.4f} +/- {np.std(aucs):.4f}")
+    return {"auc_mean": np.mean(aucs), "auc_std": np.std(aucs)}
+```
+
+::: {.callout-tip}
+## ¿Cuándo usar k-fold?
+
+| Situación | Recomendación |
+|---|---|
+| Dataset grande (> 50 000 muestras) | Split fijo: más eficiente, estimación confiable |
+| Dataset pequeño (< 10 000 muestras) | k-fold: menor varianza del estimador |
+| Comparar dos arquitecturas formalmente | k-fold con prueba estadística pareada |
+| Optimización rápida de hiperparámetros | Split fijo + búsqueda bayesiana (Día 2) |
+
+Para nuestro dataset de ~5 800 imágenes, k-fold es la opción más rigurosa. En el workshop usaremos split fijo por eficiencia de tiempo, pero documentaremos esta limitación en el reporte final.
+:::
+
+
+
+# Métricas y baselines `(1:35 – 1:50)`
+
+## La métrica define el problema: ¿Qué cuenta como "ganar"?
+
+@murphy2012machine establece un principio vital: **la función de pérdida que el modelo optimiza define qué problema cree que está resolviendo**. Si tu métrica y tu objetivo están desalineados, terminarás con un modelo que "se ve bien" en el papel pero falla en la realidad.
+
+**En la bici:** Imagina que tu métrica de éxito es "llegar rápido". Si solo mides el tiempo, podrías ignorar que llegaste con la rodilla raspada y la bici rota. Si tu objetivo real es "llegar ileso", tu métrica debería ser el **número de raspones**, no los segundos en el cronómetro.
+
+@bishop2006pattern profundiza en esto: para diagnóstico médico, un **falso negativo** (decir que alguien está sano cuando tiene neumonía) es mucho más costoso que un falso positivo. Por eso, el "Accuracy" es una métrica peligrosa aquí.
+
+
+
+### El peligro del Accuracy (El modelo "Perezoso")
+
+En nuestro dataset, el 74% de las imágenes son PNEUMONIA. Un modelo que no aprende nada y simplemente dice "siempre es Neumonía" tendría un 74% de accuracy. **Es un modelo que gana por estadística, no por inteligencia.**
+```python
+# Demostración: por qué accuracy es engañosa en datasets desbalanceados
+
+n_normal    = 234    # imágenes NORMAL en test
+n_pneumonia = 390    # imágenes PNEUMONIA en test
+total       = n_normal + n_pneumonia
+
+# Modelo trivial: predice siempre la clase mayoritaria
+trivial_accuracy  = n_pneumonia / total
+trivial_recall    = 1.0                   # Detecta todos los positivos
+trivial_precision = n_pneumonia / total   # 62.5% son en realidad positivos
+
+print(f"Modelo trivial (siempre PNEUMONIA):")
+print(f"  Accuracy    : {trivial_accuracy:.2%}")   # ~62.5%
+print(f"  Recall      : {trivial_recall:.2%}")     # 100% — parece perfecto
+print(f"  Precision   : {trivial_precision:.2%}")  # 62.5% — 37.5% son falsos positivos
+print()
+print("Accuracy 'razonable' sin aprender nada:")
+print("La métrica correcta debe capturar el trade-off clínico real.")
+```
+
+## Métricas adecuadas: Tu panel de control en la montaña
+
+La elección de una métrica no es un paso técnico, es una **decisión de diseño**. Como señalan @bishop2006pattern y @murphy2012machine, la métrica debe reflejar el "costo" real del error en el dominio.
+
+**En la bici:** Si tu objetivo es bajar la montaña ileso, de nada sirve que el cronómetro marque un tiempo récord (Accuracy) si terminaste en el hospital (Falso Negativo). Tu métrica de éxito debe priorizar el **Recall** (no ignorar ninguna piedra peligrosa).
+
+| Métrica | En la Bici | En Rayos X | ¿Por qué importa? |
+|---|---|---|---|
+| **Recall** | ¿Cuántas piedras esquivé del total que había? | ¿Cuántas neumonías detecté de las reales? | **Vida o muerte:** Un FN es una neumonía sin tratar. |
+| **Precision** | Si grité "¡Piedra!", ¿realmente había una? | Si dije "Neumonía", ¿el paciente está enfermo? | **Eficiencia:** Evita alarmas falsas y biopsias innecesarias. |
+| **AUC-ROC** | Tu habilidad técnica general en cualquier clima. | Capacidad de separar clases sin importar el umbral. | Evalúa al modelo como un todo, no solo un punto. |
+| **F1-score** | El equilibrio entre velocidad y seguridad. | Balance armónico entre Precision y Recall. | Útil cuando quieres un solo número ganador. |
+
+
+
+### Alineando el entrenamiento: Loss Ponderada
+
+Para que el modelo "sienta" la importancia del Recall, ajustamos la **función de pérdida**. Es como decirle al ciclista: *"Caerte te duele 2 veces más que llegar tarde"*.
+
+$$
+\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} w_{y_i} \left[ y_i \log \hat{p}_i + (1-y_i)\log(1-\hat{p}_i) \right]
+$$
+
+Fijamos $w_{\text{PNEUMONIA}} = 2.0$. Este peso obliga a la red a ser extra cautelosa con la clase positiva, orientando el aprendizaje hacia la seguridad clínica.
+
+---
+
+## Baselines: El principio de parsimonia
+
+@burkov2020machine establece la regla de oro: **"Si no superas un baseline simple, tu modelo no sirve."** En ingeniería, esto se llama **parsimonia**. Según @hastie2009elements, un modelo complejo (ResNet-18) tiene mucha varianza; si una herramienta simple ya resuelve el problema, agregar complejidad es como comprar una bicicleta de fibra de carbono para ir por el pan: es caro, frágil y no te hace llegar más rápido.
+
+::: {.callout-important}
+## Escalinata de Baselines (De menos a más)
+
+No saltamos a la cima de inmediato. Cada nivel debe justificar su existencia superando al anterior:
+
+| Nivel | Modelo | Propósito | Análogo en la Bici |
+|---|---|---|---|
+| **0 — Trivial** | Clasificador de mayoría | Piso mínimo (74% accuracy por puro azar). | Ir caminando (si la bici no es más rápida, no sirve). |
+| **1 — Estadístico** | Regresión Logística | Baseline lineal. ¿Es el problema simple? | Una bici de una sola velocidad (urbana). |
+| **2 — CNN simple** | Red de 3 capas (Custom) | Baseline no lineal. ¿Sirven las neuronas? | Una bici de montaña básica. |
+| **3 — Objetivo** | **ResNet-18 (Fine-tuning)** | Hipótesis principal: Transfer Learning. | Una bici de competencia profesional. |
+:::
+
+```{mermaid}
+graph TD
+    A[B0: Azar / Mayoría] -->|Superar| B[B1: Regresión Logística]
+    B -->|Superar| C[B2: CNN desde cero]
+    C -->|Superar| D["B3: ResNet-18 (¡Objetivo!)"]
+    
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style A fill:#eee,stroke:#999
+```
+
+
+
+> **Moraleja:** Si tu ResNet-18 (Nivel 3) tiene el mismo Recall que la Regresión Logística (Nivel 1), algo está muy mal en tu entrenamiento. No sigas adelante hasta que el modelo complejo "se gane" su lugar.
+
+```python
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+
+# Baseline nivel 0: clasificador de mayoría
+dummy = DummyClassifier(strategy="most_frequent")
+dummy.fit(X_train, y_train)
+print("── Baseline nivel 0: Clasificador de mayoría ──")
+print(classification_report(y_test, dummy.predict(X_test),
+                             target_names=["NORMAL", "PNEUMONIA"]))
+
+
+# Baseline nivel 1: regresión logística sobre características de imagen
+# (imágenes aplanadas: 224 x 224 x 3 = 150 528 características)
+lr_baseline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("clf",    LogisticRegression(max_iter=1000, class_weight="balanced"))
+])
+lr_baseline.fit(X_train_flat, y_train)
+print("── Baseline nivel 1: Regresión logística ──")
+print(classification_report(y_test, lr_baseline.predict(X_test_flat),
+                             target_names=["NORMAL", "PNEUMONIA"]))
+# Si ResNet-18 no supera esto de forma clara,
+# es señal de que algo está mal en el pipeline.
+```
+
+# Selección de arquitectura y estructura del proyecto
+
+## Match entre tipo de tarea y familia de modelos: El equipo adecuado
+
+@huyen2022designing establece que la variable independiente más crítica en un experimento no es la tasa de aprendizaje, sino la **arquitectura**. Elegir un modelo solo por su popularidad es un error de novato. 
+
+**En la bici:** No usas una bicicleta de ruta (delgada y aerodinámica) para bajar una montaña llena de rocas y lodo. La arquitectura de la bici debe responder a la **naturaleza del terreno**. Si el terreno es visual y jerárquico (como una radiografía), necesitas una arquitectura diseñada para procesar patrones espaciales.
+
+### Taxonomía fundamental de modelos
+
+| Tipo de entrada | Estructura relevante | Familia de modelos | Análogo en la Bici |
+|---|---|---|---|
+| **Imagen** | Patrones espaciales y jerarquías | **CNN**, Vision Transformer | **Bici de Montaña:** Suspensión para el terreno irregular. |
+| **Texto / Secuencia** | Dependencias de largo alcance | Transformer (GPT, BERT) | **Bici de Ruta:** Eficiencia en tramos largos y planos. |
+| **Serie temporal** | Dependencias en el tiempo | LSTM, TCN | **Bici de Pista:** Ritmo constante y cronometrado. |
+| **Tabular** | Interacciones entre features | Gradient Boosting, MLP | **Bici Urbana:** Versátil para diferentes tipos de calles. |
+
+---
+
+## Árbol de decisión para imágenes médicas
+
+Para nuestro caso de Rayos X, no elegimos una arquitectura al azar. Seguimos un razonamiento basado en la disponibilidad de datos y la complejidad del patrón visual.
+
+
+
+1. **¿Tenemos millones de imágenes propias?**
+   - **No:** (Tenemos ~5,800). Descartamos entrenar desde cero o usar Transformers masivos (ViT) sin pre-entrenamiento.
+2. **¿Existen patrones visuales universales (bordes, texturas)?**
+   - **Sí:** Las radiografías comparten estructuras básicas con el mundo real. **Solución: Transfer Learning.**
+3. **¿Eficiencia vs. Capacidad?**
+   - Para un workshop y un dataset médico de este tamaño, la **ResNet-18** es el "punto dulce": lo suficientemente profunda para entender la neumonía, pero lo suficientemente ligera para correr en una GPU básica sin morir en el intento.
+
+```{mermaid}
+graph TD
+    A[Tarea: Clasificación de Imágenes] --> B{¿Dataset Gigante?}
+    B -->|Sí| C[Vision Transformer / ResNet-152]
+    B -->|No| D[Transfer Learning / Fine-tuning]
+    D --> E{¿Recursos Limitados?}
+    E -->|Sí| F["ResNet-18 (Nuestra elección)"]
+    E -->|No| G[ResNet-50 / EfficientNet]
+
+    style F fill:#f9f,stroke:#333,stroke-width:2px
+```
+
+::: {.callout-tip}
+## ¿Por qué ResNet-18 y no otra?
+Es la "bicicleta de montaña rígida" del Deep Learning: confiable, fácil de mantener y excelente para aprender las bases antes de pasar a modelos más complejos y costosos.
+:::
+
+```{mermaid}
+flowchart TD
+    A["Clasificacion de imagen medica"] --> B{"Datos disponibles"}
+    B -->|"menos de 10 000"| C["Transfer learning<br>obligatorio"]
+    B -->|"mas de 100 000"| D["Entrenamiento desde<br>cero viable"]
+    C --> E{"Inferencia<br>en tiempo real?"}
+    E -->|"Si, edge/movil"| F["MobileNet-V3<br>EfficientNet-B0"]
+    E -->|"No, servidor"| G{"Interpretabilidad<br>necesaria?"}
+    G -->|"Si"| H["ResNet-18<br>DenseNet-121"]
+    G -->|"No"| I["EfficientNet-B3<br>ViT-B/16"]
+    D --> J["CNN desde cero"]
+```
+
+### ¿Por qué ResNet-18 para este experimento?
+
+| Criterio | ResNet-18 [@he2016deep] | Justificación |
+|---|---|---|
+| **Tamaño** | 11 M parámetros | Entrena en < 10 min en Colab T4 |
+| **Disponibilidad** | `torchvision.models` | Sin instalación adicional |
+| **Transfer learning** | Pesos ImageNet | Generaliza bien con ~5 000 muestras |
+| **Interpretabilidad** | Compatible con Grad-CAM | Útil para análisis de errores (Día 3) |
+| **Referencia** | Usado en @kermany2018identifying | Punto de comparación válido |
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import models
+
+
+def build_model(num_classes: int = 2,
+                freeze_backbone: bool = True) -> nn.Module:
+    """
+    ResNet-18 con cabeza de clasificacion personalizada.
+
+    La decision de congelar el backbone es una variable independiente:
+      freeze_backbone=True  -> solo entrenar la capa final (~500K params)
+      freeze_backbone=False -> fine-tuning completo (~11M params)
+    """
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+
+    if freeze_backbone:
+        for param in model.parameters():
+            param.requires_grad = False
+
+    in_features = model.fc.in_features
+    model.fc = nn.Sequential(
+        nn.Dropout(p=0.4),
+        nn.Linear(in_features, num_classes)
+    )
+    return model
+
+
+# Verificacion rapida
+model  = build_model(num_classes=2, freeze_backbone=True)
+dummy  = torch.randn(4, 3, 224, 224)
+print(f"Forma de salida: {model(dummy).shape}")   # torch.Size([4, 2])
+
+total     = sum(p.numel() for p in model.parameters())
+trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f"Parametros totales:      {total:>12,}")
+print(f"Parametros entrenables:  {trainable:>12,}")
+```
+
+## Estructura de directorios y convenciones: notebooks vs scripts
+
+@burkov2020machine y @wilson2017good coinciden en que la estructura de directorios es parte del protocolo experimental: define cuál es el código de producción y cuál es exploración temporal.
+
+```
+pneumonia-classifier/
+├── data/                       # Datos — NUNCA en Git
+│   ├── raw/chest_xray/         # Dataset original (controlado por DVC)
+│   └── processed/              # Tensores preprocesados
+│
+├── notebooks/                  # Exploración y prototipado
+│   ├── 01_eda.ipynb
+│   ├── 02_baseline.ipynb
+│   └── 03_evaluation.ipynb
+│
+├── src/                        # Código fuente — importable, testeable
+│   ├── __init__.py
+│   ├── data.py                 # DataLoaders y transformaciones
+│   ├── model.py                # Definición de arquitectura
+│   ├── train.py                # Loop de entrenamiento
+│   ├── evaluate.py             # Métricas y análisis de errores
+│   └── utils.py                # set_seed, logger
+│
+├── configs/                    # Configuraciones de experimentos (en Git)
+│   ├── baseline.yaml
+│   └── sweep.yaml
+│
+├── outputs/                    # Resultados — NO en Git (excepto métricas JSON)
+│   ├── checkpoints/
+│   ├── figures/
+│   └── reports/
+│
+├── docs/                       # Documentación Quarto
+│   └── dia1.qmd ... dia4.qmd
+│
+├── .gitignore
+├── dvc.yaml
+├── environment.yml
+└── README.md
+```
+
+### ¿Cuándo usar notebooks y cuándo migrar a scripts?
+
+| Criterio | Notebook `.ipynb` | Script `.py` |
+|---|---|---|
+| **Propósito** | Explorar, visualizar, comunicar | Código reutilizable e importable |
+| **Estado** | Con estado (celdas fuera de orden) | Sin estado (importable limpiamente) |
+| **Testing** | Difícil de testear | `pytest`-friendly |
+| **Control de versiones** | Diffs difíciles (JSON) | Diffs limpios en Git |
+| **Ejecución en servidor** | Requiere Jupyter | `python src/train.py` |
+
+::: {.callout-tip}
+## Regla práctica de migración
+
+Un notebook debe convertirse a script cuando cualquiera de estas condiciones se cumple:
+
+- Supera **150–200 líneas** de código funcional.
+- Otro colaborador necesita **ejecutarlo o importarlo**.
+- Forma parte del **pipeline de entrenamiento** (no solo exploración).
+- Necesita ejecutarse **programáticamente** desde CLI o DVC.
+
+El flujo natural es: Notebook (exploración) → Script (producción) → Quarto (comunicación).
+:::
+
+```bash
+# Inicializar la estructura completa del proyecto
+mkdir -p pneumonia-classifier/{data/raw,data/processed,notebooks,src,configs,outputs/{checkpoints,figures,reports},docs}
+cd pneumonia-classifier
+git init
+touch src/__init__.py
+
+# .gitignore esencial
+printf "data/<br>outputs/checkpoints/<br>outputs/figures/<br>__pycache__/<br>*.pyc<br>.ipynb_checkpoints/<br>wandb/<br>" > .gitignore
+
+# Primer commit con la estructura
+git add .
+git commit -m "chore: estructura inicial del proyecto"
+```
+
+# Ejercicio de cierre
+
+
+::: {.callout-important icon=false}
+## 📝 Ejercicio guiado · 10 minutos
+
+**Instrucciones:** En equipos de 2–3 personas, diseñen un experimento mínimo para el siguiente escenario.
+
+---
+
+**Escenario:** Un hospital quiere saber si agregar el **histograma de intensidades** de la imagen como features adicionales (junto con la CNN) mejora la clasificación respecto al modelo ResNet-18 base.
+
+**Completen la siguiente tabla antes de escribir código:**
+
+| Componente | Su respuesta |
+|---|---|
+| **Pregunta científica** | ¿...? |
+| **Hipótesis $H_0$** | |
+| **Hipótesis $H_1$** | |
+| **Variable independiente** | |
+| **Variable dependiente** | |
+| **Variables controladas** (mínimo 3) | |
+| **Métrica primaria con umbral** | |
+| **Baseline de comparación** | |
+| **¿Qué resultado refutaría $H_1$?** | |
+
+---
+
+**Para discutir al final:**
+
+1. ¿Es válido evaluar ambos modelos en el mismo conjunto de test? ¿Qué problema introduce?
+2. ¿Cuántas épocas de entrenamiento necesitarían para que la comparación sea justa?
+3. ¿La semilla aleatoria es una variable controlada o confusora en este caso?
+:::
+
+---
+
+# Cierre conceptual
+
+## Un experimento es válido solo si puede demostrar que estás equivocado
+
+@popper1959logic argumenta que el progreso científico avanza por **refutaciones**, no por acumulación de confirmaciones. En ML, esto se traduce en una disciplina que pocos practican: diseñar activamente contra la propia hipótesis.
+
+Antes de ejecutar el experimento, la pregunta obligatoria es:
+
+> *"¿Qué haría yo si el resultado fuera el contrario al esperado?"*
+
+Si la respuesta es "buscaría una explicación para salvar la hipótesis", el experimento no está bien diseñado. @sculley2015hidden documentan cómo la cultura de ML en la industria frecuentemente invierte este principio: los equipos ejecutan experimentos hasta encontrar uno que confirme lo que ya querían construir. El costo no es solo científico; los modelos desplegados sin refutación rigurosa fallan de maneras impredecibles en producción.
+
+---
+
+::: {.callout-note icon=false}
+## 🧩 Mensaje central de la sesión
+
+$$
+\boxed{\text{La arquitectura es intercambiable. La pregunta científica no.}}
+$$
+
+Una pregunta mal formulada produce experimentos que no pueden ser refutados.  
+Un experimento que no puede ser refutado no produce conocimiento.  
+Un modelo entrenado sin conocimiento válido no debe desplegarse.
+
+---
+
+**Al terminar esta sesión, el alumno puede:**
+
+- Formular una pregunta científica con intervención, outcome y contexto controlado.
+- Definir hipótesis $H_0$ y $H_1$ falsables con criterio de rechazo cuantitativo.
+- Identificar variables independientes, dependientes, controladas y confusoras en un experimento de ML.
+- Aplicar los seis principios de robustez experimental: definir objetivo, seleccionar variable respuesta, elegir factores y niveles, diseñar el experimento, ejecutar con control de sesgo y analizar con rigor estadístico.
+- Implementar aleatorización, replicación, blocking estratificado y validación cruzada k-fold.
+- Elegir métricas coherentes con el costo asimétrico del error en el dominio.
+- Seleccionar una arquitectura de modelo justificando el match con el tipo de tarea y las restricciones del problema.
+- Organizar un proyecto de ML con estructura de directorios reproducible y decidir cuándo usar notebooks vs scripts.
+- Diseñar un experimento mínimo con baseline, protocolo YAML y criterio de éxito cuantificado.
+
+**Mañana (Día 2):** Con el experimento diseñado y el proyecto estructurado, ejecutaremos el entrenamiento en infraestructura real y registraremos cada run en Weights & Biases.
+:::
+
+---
+
+# Referencias bibliográficas
+
+::: {#refs}
+:::

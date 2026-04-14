@@ -1,0 +1,64 @@
+project:
+  type: book
+  output-dir: docs
+  resources:
+    - slides/        
+
+book:
+  title: "Workshop ¿Cómo diseñar, entrenar y comunicar un proyecto de Machine Learning?"
+  author: "Diego Villaba"
+  search: true
+  repo-url: https://github.com/DiegoViillalba/almacenamienes-y-mineria-de-datos
+  repo-actions: [edit]
+  downloads: [pdf, epub]
+  sharing: [twitter, facebook]
+  language: es
+  cover-image: portada.png
+  page-footer: "Copyright 2026, Diego Villalba. Todos los derechos reservados." 
+  sidebar:
+    style: "floating"
+    collapse-toggle: true
+  
+  chapters:
+    - index.qmd
+    - notes/dia1_disenio_experimento.qmd
+    - notes/dia2_infraestructura_entrenamiento.qmd
+    # - notes/dia3_reproducibilidad_evaluacion.qmd
+    # - notes/dia4_documentacion_comunicacion.qmd
+
+format:
+  html:
+    number-sections: false # <--- ESTA ES LA LÍNEA CLAVE
+    css: visionbook.css
+    anchor-sections: true
+    fontsize: "16px"
+    linestretch: 1.6
+    mainfont: "Palatino"
+    monofont: "Fira Mono"
+    smooth-scroll: true
+    toc-depth: 3
+    code-link: true
+    code-fold: false
+    code-tools: false
+    highlight-style: printing
+    code-block-bg: true
+    code-overflow: wrap
+    theme:
+      light: cosmo
+      dark: darkly
+    fig-align: "center"
+    reference-location: margin
+    cap-location: margin
+    mathjax: true
+    lightbox: true
+    crossref:
+      custom:
+        - key: alg
+          kind: float
+          reference-prefix: Algorithm
+    grid:
+      gutter-width: 2em
+    other-links:
+      - text: Contáctame
+        href: mailto:diego.villalba@ciencias.unam.mx
+        icon: envelope

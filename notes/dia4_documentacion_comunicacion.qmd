@@ -1,0 +1,576 @@
+---
+title: "Día 4 · Documentación y comunicación con Quarto"
+subtitle: "De la idea al experimento: Cómo diseñar, entrenar y comunicar un proyecto de Machine Learning"
+author: "Workshop ML · Abril 2026"
+date: "2026-04-16"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenido"
+    number-sections: true
+    highlight-style: github
+    code-fold: true
+    code-tools: true
+    self-contained: true
+    fig-align: center
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
+bibliography: references.bib
+---
+
+::: {.callout-note icon=false}
+## 🗓 Sesión 4 · 16 de abril de 2026 · 7:00 – 9:00 h
+
+**Estructura:** ~30 min exposición · ~60 min práctica guiada · ~20 min presentaciones finales
+
+**Checkpoint del Día 3:** pipeline reproducible, métricas completas, figuras generadas, umbral ajustado.
+:::
+
+---
+
+# ¿Por qué Quarto?
+
+Un resultado científico no comunicado no existe. **Quarto** [@allaire2022quarto] es el sistema de publicación técnica de siguiente generación que permite integrar código, texto, figuras y matemáticas en un solo documento fuente (`.qmd`) y renderizarlo en múltiples formatos de salida.
+
+## Versatilidad de Quarto
+
+```{mermaid}
+flowchart LR
+    A[documento.qmd\nFuente única] --> B[HTML\nReporte interactivo]
+    A --> C[PDF\nArtículo / entregable]
+    A --> D[RevealJS\nPresentación]
+    A --> E[Sitio web\nGitHub Pages]
+    A --> F[Word\n.docx]
+    A --> G[Libro\nQuarto Book]
+```
+
+| Formato | Caso de uso en ML |
+|---|---|
+| **HTML** | Reporte de experimento con código colapsable |
+| **RevealJS** | Presentación de resultados al equipo |
+| **PDF** | Entregable formal / paper borrador |
+| **Sitio web** | Documentación pública del proyecto |
+| **Word** | Reporte para audiencias no técnicas |
+
+## Anatomía de un documento `.qmd`
+
+Un archivo `.qmd` tiene tres partes:
+
+```markdown
+---
+title: "Mi experimento"           # <- 1. YAML front matter
+author: "Diego"
+format: html
+execute:
+  eval: true
+  echo: true
+---
+
+# Introducción                    # <- 2. Texto Markdown
+
+Este es mi análisis.
+
+```{python}                       # <- 3. Bloques de código
+import pandas as pd
+df = pd.read_csv("resultados.csv")
+df.head()
+```
+```
+
+---
+
+# Instalación y configuración
+
+## Instalar Quarto
+
+```bash
+# Descargar desde https://quarto.org/docs/get-started/
+# En Linux/Mac:
+wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.554/quarto-1.4.554-linux-amd64.deb
+sudo dpkg -i quarto-1.4.554-linux-amd64.deb
+
+# Verificar instalación
+quarto --version
+
+# Instalar extensiones útiles
+quarto install extension quarto-ext/fontawesome
+```
+
+## Comandos esenciales
+
+```bash
+# Renderizar un documento
+quarto render mi_reporte.qmd
+
+# Renderizar en un formato específico
+quarto render mi_reporte.qmd --to pdf
+quarto render mi_reporte.qmd --to revealjs
+
+# Vista previa con recarga automática (ideal para desarrollo)
+quarto preview mi_reporte.qmd
+
+# Crear un proyecto completo
+quarto create project website mi-proyecto-ml
+```
+
+---
+
+# Reporte de experimento: estructura recomendada
+
+El documento de tu reporte final debe seguir esta estructura. Abajo está el template completo que usarás en la práctica.
+
+## Front matter para el reporte final
+
+```yaml
+---
+title: "Clasificador de neumonía en rayos X de tórax"
+subtitle: "Reporte de experimento · Workshop ML 2026"
+author:
+  - name: "Tu Nombre"
+    affiliation: "Institución"
+    email: "tu@email.com"
+date: today
+date-format: "D [de] MMMM [de] YYYY"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true          # Código colapsable por defecto
+    code-tools: true         # Botón para ver/copiar código
+    fig-cap-location: bottom
+    tbl-cap-location: top
+    self-contained: true     # Un solo archivo HTML
+
+execute:
+  eval: true                 # Ejecutar código al renderizar
+  echo: true
+  warning: false
+  message: false
+  cache: true                # Cachear resultados costosos
+
+bibliography: references.bib
+csl: apa.csl
+---
+```
+
+## Sección de métodos: con referencias cruzadas
+
+```markdown
+## Arquitectura del modelo {#sec-arquitectura}
+
+Utilizamos ResNet-18 [@he2016deep] con pesos preentrenados en ImageNet
+como backbone, reemplazando la capa de clasificación final por una capa
+`Dropout(p=0.4)` seguida de una capa lineal de 2 salidas.
+
+La decisión de usar transfer learning se justifica por el tamaño
+moderado del dataset (~5 800 imágenes), donde entrenar desde cero
+introduciría sobreajuste significativo (ver @sec-evaluacion para el
+análisis comparativo).
+
+La función de pérdida incluye un peso para la clase positiva
+($w_{pos} = 2.0$) para compensar el desbalance de clases (ver ecuación
+@eq-loss):
+
+$$
+\mathcal{L} = -\sum_{i} w_{y_i} \left[ y_i \log \hat{p}_i + (1 - y_i) \log (1 - \hat{p}_i) \right]
+$$ {#eq-loss}
+```
+
+## Tabla de resultados reproducible desde código
+
+```python
+#| label: tbl-resultados
+#| tbl-cap: "Métricas de evaluación en el conjunto de prueba."
+#| echo: false
+
+import json
+import pandas as pd
+from IPython.display import display
+
+with open("outputs/test_metrics.json") as f:
+    metrics = json.load(f)
+
+df = pd.DataFrame({
+    "Clase": ["NORMAL", "PNEUMONIA", "—", "—"],
+    "Precision": [
+        f"{metrics['precision_normal']:.3f}",
+        f"{metrics['precision_pneumonia']:.3f}",
+        "—",
+        "—"
+    ],
+    "Recall": [
+        f"{metrics['recall_normal']:.3f}",
+        f"{metrics['recall_pneumonia']:.3f}",
+        "—",
+        "—"
+    ],
+    "F1": [
+        f"{metrics['f1_normal']:.3f}",
+        f"{metrics['f1_pneumonia']:.3f}",
+        f"{metrics['accuracy']:.3f}",
+        f"{metrics['auc_roc']:.3f}"
+    ],
+    "Métrica global": ["—", "—", "Accuracy", "AUC-ROC"]
+})
+
+display(df.style.hide(axis="index"))
+```
+
+## Figuras con caption y referencias cruzadas
+
+```markdown
+## Curvas de evaluación {#sec-evaluacion}
+
+Las @fig-curvas muestran las curvas ROC y Precision-Recall del modelo
+en el conjunto de prueba.
+
+```{python}
+#| label: fig-curvas
+#| fig-cap: "Curvas ROC (izquierda) y Precision-Recall (derecha) en el conjunto de prueba. El área bajo la curva ROC es 0.97."
+#| fig-subcap:
+#|   - "Curva ROC"
+#|   - "Curva Precision-Recall"
+#| layout-ncol: 2
+#| echo: false
+
+from IPython.display import Image
+display(Image("outputs/figures/roc_pr_curves.png"))
+```
+
+La @fig-confusion muestra la distribución de errores del modelo.
+
+```{python}
+#| label: fig-confusion
+#| fig-cap: "Matrices de confusión (conteos y normalizada). El modelo alcanza un recall de 0.95 para la clase PNEUMONIA."
+#| echo: false
+
+display(Image("outputs/figures/confusion_matrix.png"))
+```
+```
+
+---
+
+# Presentación en RevealJS
+
+```yaml
+# presentacion_final.qmd
+---
+title: "Clasificador de neumonía"
+subtitle: "Workshop ML 2026"
+author: "Tu Nombre"
+date: "16 de abril de 2026"
+
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    chalkboard: true       # Anotaciones en vivo
+    preview-links: auto
+    footer: "Workshop ML · Abril 2026"
+    logo: "figures/logo.png"
+    transition: fade
+    incremental: false
+---
+```
+
+## Estructura de la presentación (10 slides)
+
+```markdown
+## Problema y motivación
+
+- Neumonía: 2.5 M de muertes anuales en menores de 5 años [@who2022]
+- El diagnóstico por rayos X requiere radiólogo experto
+- **Objetivo:** clasificador automático como apoyo al triaje
+
+---
+
+## Dataset
+
+:::: {.columns}
+::: {.column width="50%"}
+- 5 863 imágenes de rayos X pediátrico
+- Fuente: Guangzhou Women and Children's Medical Center
+- División: 80% train / 20% test
+:::
+::: {.column width="50%"}
+![Ejemplos del dataset](outputs/figures/eda_samples.png)
+:::
+::::
+
+---
+
+## Arquitectura
+
+```{python}
+#| echo: false
+from IPython.display import Image
+Image("figures/resnet18_diagram.png")
+```
+
+ResNet-18 preentrenada en ImageNet → fine-tuning de la última capa
+
+---
+
+## Resultados principales
+
+| Métrica | Valor |
+|---------|-------|
+| AUC-ROC | 0.97 |
+| Recall PNEUMONIA | **0.95** |
+| Precision PNEUMONIA | 0.88 |
+| Accuracy | 0.91 |
+
+> Objetivo clínico (recall ≥ 0.90): ✅ cumplido
+
+---
+
+## Análisis de errores
+
+![Errores más confiados del modelo](outputs/figures/error_analysis.png){width=80%}
+
+---
+
+## Conclusiones y trabajo futuro
+
+- El modelo cumple el criterio clínico de recall ≥ 0.90
+- Limitación principal: set de validación muy pequeño (n=16)
+- Próximos pasos: Grad-CAM, datos externos, modelo multimodal
+```
+
+---
+
+# Buenas prácticas de documentación en equipo
+
+## README.md: la puerta de entrada del proyecto
+
+```markdown
+# Pneumonia Classifier
+
+Clasificador de neumonía en rayos X de tórax usando PyTorch y ResNet-18.
+
+## Resultados
+
+| Métrica | Valor |
+|---------|-------|
+| AUC-ROC (test) | 0.97 |
+| Recall PNEUMONIA (test) | 0.95 |
+
+## Estructura del proyecto
+
+```
+pneumonia-classifier/
+├── src/         # Código fuente
+├── configs/     # Configuraciones de experimentos
+├── docs/        # Documentación Quarto
+└── outputs/     # Resultados (no en Git)
+```
+
+## Reproducir el experimento
+
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/usuario/pneumonia-classifier
+cd pneumonia-classifier
+conda env create -f environment.yml
+conda activate pneumonia-clf
+
+# 2. Descargar datos
+dvc pull
+
+# 3. Ejecutar pipeline completo
+dvc repro
+
+# 4. Ver reporte
+quarto render docs/reporte_final.qmd
+```
+
+## Experimentos
+
+Ver el dashboard en [W&B](https://wandb.ai/tu-usuario/pneumonia-classifier).
+```
+
+## Checklist de reproducibilidad final
+
+```markdown
+# checklist_reproducibilidad.md
+
+## Código
+- [ ] Repositorio en GitHub con commits limpios
+- [ ] `environment.yml` actualizado
+- [ ] Semilla fijada en todos los módulos
+- [ ] Sin rutas absolutas en el código
+
+## Datos
+- [ ] Dataset versionado con DVC
+- [ ] `dvc.yaml` describe el pipeline completo
+- [ ] División train/val/test documentada
+
+## Experimentos
+- [ ] Todos los runs en W&B con tags descriptivos
+- [ ] Configuraciones en `configs/` versionadas en Git
+- [ ] Mejor modelo guardado como artefacto en W&B
+
+## Resultados
+- [ ] `outputs/test_metrics.json` en el repositorio
+- [ ] Figuras generadas por código (no editadas manualmente)
+- [ ] Reporte Quarto se renderiza sin errores en máquina limpia
+
+## Documentación
+- [ ] README con instrucciones de instalación y ejecución
+- [ ] Funciones documentadas con docstrings
+- [ ] Limitaciones del modelo descritas explícitamente
+```
+
+---
+
+# Template del reporte final (completo)
+
+Este es el archivo que cada participante completará durante la práctica:
+
+```markdown
+---
+title: "Clasificador de neumonía en rayos X"
+subtitle: "Reporte de experimento · Workshop ML 2026"
+author:
+  - name: "Tu Nombre"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    number-sections: true
+    code-fold: true
+    self-contained: true
+execute:
+  eval: true
+  echo: true
+  warning: false
+  cache: true
+bibliography: references.bib
+---
+
+## Resumen ejecutivo
+
+[Un párrafo describiendo el problema, el enfoque y los resultados principales.]
+
+## Pregunta de investigación
+
+[Transcribir la pregunta definida en el Día 1 y justificar por qué el recall
+es la métrica principal.]
+
+## Dataset y preprocesamiento
+
+[Describir el dataset con estadísticas (usa el código del Día 1).]
+
+## Arquitectura y decisiones de diseño
+
+[Justificar ResNet-18, transfer learning, función de pérdida ponderada.]
+
+## Entrenamiento
+
+[Incluir la tabla de hiperparámetros finales del mejor run en W&B.]
+
+## Resultados
+
+[Insertar figuras generadas en el Día 3: matriz de confusión, ROC/PR,
+análisis de umbral.]
+
+## Análisis de errores
+
+[Discutir los errores más confiados del modelo.]
+
+## Reproducibilidad
+
+[Describir las medidas tomadas: semilla, DVC, environment.yml.]
+
+## Conclusiones y limitaciones
+
+[Responder la pregunta de investigación. Ser honesto sobre las limitaciones.]
+
+## Referencias
+```
+
+---
+
+# Práctica guiada
+
+## Ejercicio 1 · Configurar el reporte (20 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Crea `docs/reporte_final.qmd` usando el template de la sección anterior.
+2. Completa las secciones "Resumen ejecutivo" y "Dataset".
+3. Inserta la figura `eda_samples.png` con un caption descriptivo.
+4. Renderiza: `quarto render docs/reporte_final.qmd` — debe generar un HTML sin errores.
+:::
+
+## Ejercicio 2 · Tabla de resultados desde JSON (20 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Carga `outputs/test_metrics.json` en un bloque de código dentro del `.qmd`.
+2. Genera la tabla de resultados con `pandas` como se muestra en la sección 4.3.
+3. Agrega `#| label: tbl-resultados` y `#| tbl-cap:` para referenciarla en el texto.
+4. En el texto escribe "como se muestra en la @tbl-resultados" y verifica que el enlace funciona.
+:::
+
+## Ejercicio 3 · Presentación final (20 min)
+
+::: {.callout-important icon=false}
+## 📝 Instrucciones
+
+1. Crea `docs/presentacion.qmd` con formato RevealJS.
+2. Prepara 5–8 slides cubriendo: problema, datos, modelo, resultados, conclusiones.
+3. Renderiza: `quarto render docs/presentacion.qmd --to revealjs`.
+4. Cada participante tendrá **3 minutos** para presentar sus resultados al grupo.
+:::
+
+---
+
+# Discusión de cierre
+
+**Reflexiones finales del workshop:**
+
+1. ¿Qué parte del flujo de trabajo (diseño, entrenamiento, evaluación, documentación) fue la más diferente a tu práctica habitual?
+2. ¿Qué herramienta de las vistas llevarías de inmediato a tu próximo proyecto?
+3. Si tuvieras que rehacer el experimento con el doble de tiempo, ¿qué cambiarías primero?
+4. ¿Cómo afecta la reproducibilidad a la confianza que un médico podría depositar en este modelo?
+
+---
+
+# Recursos y lecturas
+
+- @allaire2022quarto — Documentación oficial de Quarto.
+- @wilson2017good — Buenas prácticas para computación científica.
+- [Quarto Gallery](https://quarto.org/docs/gallery/) — Ejemplos de reportes, sitios y presentaciones.
+- [The Turing Way](https://the-turing-way.netlify.app/) — Guía comunitaria de ciencia reproducible.
+- [Made With ML](https://madewithml.com/) — MLOps y buenas prácticas en proyectos reales.
+
+---
+
+::: {.callout-note icon=false}
+## ✅ Entregables finales del workshop
+
+Al concluir el Día 4, cada participante debe tener:
+
+- [ ] `docs/reporte_final.qmd` que renderiza sin errores en HTML.
+- [ ] `docs/presentacion.qmd` con slides en RevealJS.
+- [ ] Dashboard de W&B con al menos 3 runs registrados.
+- [ ] Pipeline DVC reproducible (`dvc repro` funciona desde cero).
+- [ ] `environment.yml` y `requirements.txt` actualizados.
+- [ ] `README.md` con instrucciones de reproducción.
+- [ ] `checklist_reproducibilidad.md` completado.
+
+**Felicidades por completar el workshop.** 🎉  
+Han recorrido el ciclo completo de un proyecto de ML: desde la pregunta inicial hasta la comunicación rigurosa de los resultados.
+:::

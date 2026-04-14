@@ -1,0 +1,3107 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="dia1_slides_files/libs/clipboard/clipboard.min.js"></script>
+<script src="dia1_slides_files/libs/quarto-html/tabby.min.js"></script>
+<script src="dia1_slides_files/libs/quarto-html/popper.min.js"></script>
+<script src="dia1_slides_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="dia1_slides_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="dia1_slides_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="dia1_slides_files/libs/quarto-html/quarto-syntax-highlighting-8b4baf804e461d9b72633f0de59a0cac.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.8.27">
+
+  <meta name="author" content="Diego Villalba">
+  <meta name="dcterms.date" content="2026-04-13">
+  <title>Diseño de experimentos en ML</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="dia1_slides_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="dia1_slides_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+      }
+    pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+    div.sourceCode
+      { color: #24292e;  }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span { color: #24292e; } /* Normal */
+    code span.al { color: #ff5555; font-weight: bold; } /* Alert */
+    code span.an { color: #6a737d; } /* Annotation */
+    code span.at { color: #d73a49; } /* Attribute */
+    code span.bn { color: #005cc5; } /* BaseN */
+    code span.bu { color: #d73a49; } /* BuiltIn */
+    code span.cf { color: #d73a49; } /* ControlFlow */
+    code span.ch { color: #032f62; } /* Char */
+    code span.cn { color: #005cc5; } /* Constant */
+    code span.co { color: #6a737d; } /* Comment */
+    code span.cv { color: #6a737d; } /* CommentVar */
+    code span.do { color: #6a737d; } /* Documentation */
+    code span.dt { color: #d73a49; } /* DataType */
+    code span.dv { color: #005cc5; } /* DecVal */
+    code span.er { color: #ff5555; text-decoration: underline; } /* Error */
+    code span.ex { color: #d73a49; font-weight: bold; } /* Extension */
+    code span.fl { color: #005cc5; } /* Float */
+    code span.fu { color: #6f42c1; } /* Function */
+    code span.im { color: #032f62; } /* Import */
+    code span.in { color: #6a737d; } /* Information */
+    code span.kw { color: #d73a49; } /* Keyword */
+    code span.op { color: #24292e; } /* Operator */
+    code span.ot { color: #6f42c1; } /* Other */
+    code span.pp { color: #d73a49; } /* Preprocessor */
+    code span.re { color: #6a737d; } /* RegionMarker */
+    code span.sc { color: #005cc5; } /* SpecialChar */
+    code span.ss { color: #032f62; } /* SpecialString */
+    code span.st { color: #032f62; } /* String */
+    code span.va { color: #e36209; } /* Variable */
+    code span.vs { color: #032f62; } /* VerbatimString */
+    code span.wa { color: #ff5555; } /* Warning */
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" href="dia1_slides_files/libs/revealjs/dist/theme/quarto-7345b8c38a3f11e94a09dd43906fa0dd.css">
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+  <link href="dia1_slides_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="dia1_slides_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="dia1_slides_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="dia1_slides_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <meta name="mermaid-theme" content="neutral">
+  <script src="dia1_slides_files/libs/quarto-diagram/mermaid.min.js"></script>
+  <script src="dia1_slides_files/libs/quarto-diagram/mermaid-init.js"></script>
+  <link href="dia1_slides_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+  
+  <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+  <script>
+  window.PlotlyConfig = {MathJaxConfig: 'local'};
+  if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+  </script>
+  <script type="module">import "https://cdn.plot.ly/plotly-3.5.0.min"</script>
+
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" class="quarto-title-block center">
+  <h1 class="title">Diseño de experimentos en ML</h1>
+  <p class="subtitle">La pregunta es más importante que la arquitectura</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Diego Villalba 
+</div>
+</div>
+</div>
+
+  <p class="date">2026-04-13</p>
+</section>
+<section id="agenda" class="slide level2 agenda">
+<h2>Agenda</h2>
+<div class="columns">
+<div class="column" style="width:99%;">
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Bloque</th>
+<th>Tema</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>0:00–0:20</code></td>
+<td>¿Qué es un experimento en ML?</td>
+</tr>
+<tr class="even">
+<td><code>0:20–0:50</code></td>
+<td>De problema a pregunta científica</td>
+</tr>
+<tr class="odd">
+<td><code>0:50–1:10</code></td>
+<td>Hipótesis</td>
+</tr>
+<tr class="even">
+<td><code>1:10–1:35</code></td>
+<td>Variables y principios de robustez</td>
+</tr>
+<tr class="odd">
+<td><code>1:35–1:50</code></td>
+<td>Métricas y baselines</td>
+</tr>
+<tr class="even">
+<td><code>1:50–2:00</code></td>
+<td>Arquitectura y estructura del proyecto</td>
+</tr>
+<tr class="odd">
+<td>Cierre</td>
+<td>Ejercicio integrador</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</section>
+<section>
+<section id="bloque-1" class="title-slide slide level1 title-section center">
+<h1>Bloque 1</h1>
+
+</section>
+<section id="qué-es-un-experimento-en-ml" class="slide level2">
+<h2>¿Qué es un experimento en ML?</h2>
+<p><em>“ML es un aproximador universal de funciones <span class="citation" data-cites="bishop2006pattern">Bishop (<a href="#/referencias" role="doc-biblioref" onclick="">2006</a>)</span>”</em></p>
+<div class="cell" data-reveal="true" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph LR
+    subgraph "El Mundo Real"
+        D[(Datos Crudos &lt;br/&gt; X, y)]
+    end
+
+    subgraph "El Proceso Experimental (Caja Negra)"
+        direction TB
+        H[Espacio de Hipótesis] --&gt; P{Algoritmo de &lt;br/&gt; Aprendizaje}
+        V[Variables de &lt;br/&gt; Control] --&gt; P
+    end
+
+    subgraph "El Aproximador Universal"
+        F{{"f(X) ≈ y"}} 
+    end
+
+    D --&gt; P
+    P --&gt; F
+
+    style F fill:#f9f,stroke:#333,stroke-width:4px
+    style D fill:#e1f5fe,stroke:#01579b
+    style P fill:#fff9c4,stroke:#fbc02d
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="qué-es-un-experimento-en-ml-1" class="slide level2">
+<h2>¿Qué es un experimento en ML?</h2>
+<p>Al derraparnos en una bicicleta, un experimento no es “salir a ver qué pasa”, es una prueba controlada para entender la relación entre el equipo y el terreno. En ML, hacemos lo mismo con datos y algoritmos.</p>
+</section>
+<section id="ml-no-es-solo-entrenar-modelos" class="slide level2">
+<h2>ML no es solo entrenar modelos</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<p>La primera trampa: confundir el <strong>medio</strong> (pedalear) con el <strong>fin</strong> (ganar estabilidad).</p>
+<blockquote>
+<p><strong>Analogía:</strong> Subirse a la bici es “entrenar”. Medir cómo la presión de las llantas afecta tu frenado es un <strong>experimento</strong>.</p>
+</blockquote>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Definición formal</strong></p>
+</div>
+<div class="callout-content">
+<p><span class="math display">\text{Experimento} = \text{H} + \text{D} + \text{M} + \text{P}</span></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Elemento</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>H</strong></td>
+<td>Hipótesis (¿30 PSI es mejor?)</td>
+</tr>
+<tr class="even">
+<td><strong>D</strong></td>
+<td>Datos (La grava de la curva)</td>
+</tr>
+<tr class="odd">
+<td><strong>M</strong></td>
+<td>Métrica (Metros de derrape)</td>
+</tr>
+<tr class="even">
+<td><strong>P</strong></td>
+<td>Protocolo (10 vueltas a 20km/h)</td>
+</tr>
+</tbody>
+</table>
+<p>Cada componente: definido <strong>antes</strong> de escribir código.</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="el-costo-del-trial-and-error" class="slide level2">
+<h2>El costo del trial-and-error</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<p><span class="citation" data-cites="sculley2015hidden">Sculley et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2015</a>)</span> — <em>hidden technical debt</em>:</p>
+<p>Sin hipótesis previa, cada iteración es un “raspón” en los datos que no te enseña nada:</p>
+<ul>
+<li>Decisiones implícitas (¿Por qué bajé la presión?)</li>
+<li>Resultados no reproducibles (Ayer no me caí, hoy sí)</li>
+<li>Conclusiones vacías (Siento que “va mejor”)</li>
+</ul>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>El criterio de Popper</strong></p>
+</div>
+<div class="callout-content">
+<p><span class="citation" data-cites="popper1959logic">Popper (<a href="#/referencias" role="doc-biblioref" onclick="">1959</a>)</span> — <strong>Falsabilidad</strong>:</p>
+<p>Si no puedes definir de antemano qué resultado te haría decir “me equivoqué de presión”, no estás haciendo ciencia.</p>
+<p><strong>Pregunta obligatoria:</strong> <em>“¿Qué haría si con 30 PSI derrapo más que con 50?”</em></p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="el-ciclo-científico-en-ml" class="slide level2">
+<h2>El ciclo científico en ML</h2>
+<div class="cell" data-reveal="true" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    %% Estilos de colores simples
+    classDef inicio fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000;
+    classDef proceso fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef decision fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    classDef final fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+
+    %% Nodos
+    A["Observación\n(Me caigo en la grava)"]:::inicio
+    B["Pregunta\ncientífica"]:::proceso
+    C["Hipótesis\nfalsable"]:::proceso
+    D["Diseño\nexperimental"]:::proceso
+    E["Datos +\nprotocolo"]:::proceso
+    F["Métrica\nde evaluación"]:::proceso
+    G{"¿H₁\nconfirmada?"}:::decision
+    H["Aprendizaje:\nNo era la presión"]:::final
+    I["Conocimiento:\n30 PSI es óptimo"]:::inicio
+
+    %% Conexiones
+    A --&gt; B
+    B --&gt; C
+    C --&gt; D
+    D --&gt; E
+    E --&gt; F
+    F --&gt; G
+    G -- "No" --&gt; H
+    G -- "Sí" --&gt; I
+    H --&gt; B
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Aplicado al proyecto</strong></p>
+</div>
+<div class="callout-content">
+<p>Antes de abrir Colab: completa la tabla del <strong>protocolo</strong>. Si no puedes definir el “escenario de fracaso”, la pregunta aún es muy vaga.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="las-6-etapas-del-experimento" class="slide level2">
+<h2>Las 6 etapas del experimento</h2>
+<p><span class="citation" data-cites="montgomery2017design">Montgomery (<a href="#/referencias" role="doc-biblioref" onclick="">2017</a>)</span> sostiene que el rigor de un experimento no está en el resultado, sino en la <strong>trazabilidad del proceso</strong>.</p>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>La Disciplina del Protocolo</strong></p>
+</div>
+<div class="callout-content">
+<p>En ML, la tentación de “moverle tantito al código” mientras el modelo entrena es el equivalente a cambiar las llantas a mitad de una carrera. Sin intregables, el resultado no es un experimento, es una anécdota.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="slide level2">
+
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Etapa</th>
+<th style="text-align: left;">Entregable (El “Contrato”)</th>
+<th style="text-align: left;">Ejemplo: Bicicleta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>① Objetivo</strong></td>
+<td style="text-align: left;"><strong>Pregunta Falsable</strong></td>
+<td style="text-align: left;">¿Bajar la presión reduce el derrape?</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>② Variable respuesta</strong></td>
+<td style="text-align: left;"><strong>Métrica + Umbral</strong></td>
+<td style="text-align: left;">Distancia de frenado &lt; 2 metros</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>③ Factores y niveles</strong></td>
+<td style="text-align: left;"><strong>Espacio de Búsqueda</strong></td>
+<td style="text-align: left;">Probar 30, 40 y 50 PSI</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>④ Diseño</strong></td>
+<td style="text-align: left;"><strong>Plan de Corridas</strong></td>
+<td style="text-align: left;">Presión vs.&nbsp;Velocidad</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>⑤ Ejecución</strong></td>
+<td style="text-align: left;"><strong><code>protocol.yaml</code></strong></td>
+<td style="text-align: left;">Mismo sensor y terreno</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>⑥ Análisis</strong></td>
+<td style="text-align: left;"><strong>Intervalos de Confianza</strong></td>
+<td style="text-align: left;">1.8m ± 0.1m (n=10)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="el-reto-del-tiempo-por-qué-diseñar-el-experimento" class="slide level2">
+<h2>El reto del tiempo: ¿Por qué diseñar el experimento?</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<p>En un mundo ideal, probaríamos todo. En el mundo real (y en la GPU), el <strong>tiempo es nuestro recurso más escaso</strong>.</p>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interacción Crítica</strong></p>
+</div>
+<div class="callout-content">
+<p>En la bici, el efecto de la <strong>presión</strong> cambia según la <strong>velocidad</strong>. En ML, el <code>lr</code> óptimo depende totalmente del <code>batch_size</code>. Si los pruebas por separado, nunca verás el panorama completo.</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<p><strong>La explosión combinatoria</strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Niveles</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Presión / LR</td>
+<td>3 opciones</td>
+</tr>
+<tr class="even">
+<td>Velocidad / Batch</td>
+<td>3 opciones</td>
+</tr>
+<tr class="odd">
+<td><strong>Total</strong></td>
+<td><strong>9 combinaciones</strong></td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</section>
+<section class="slide level2">
+
+<h3 id="visualizando-el-espacio-de-búsqueda">Visualizando el espacio de búsqueda</h3>
+<div class="cell" data-reveal="true" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph TD
+    %% Nodos principales
+    A[Presupuesto de Tiempo Limitado] --&gt; B{Metodo de Exploracion}
+    
+    B --&gt; C[Ensayo y Error]
+    B --&gt; D[Diseño Estrategico - DoE]
+    
+    subgraph Resultados
+    D --&gt; E[Efectos Principales]
+    D --&gt; F[Interacciones]
+    end
+
+    %% Estilos Simples
+    style A fill:#f5f5f5,stroke:#333
+    style B fill:#fff3e0,stroke:#fb8c00
+    style C fill:#ffebee,stroke:#c62828
+    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
+    style E fill:#e3f2fd,stroke:#1565c0
+    style F fill:#e3f2fd,stroke:#1565c0
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section></section>
+<section>
+<section id="bloque-2" class="title-slide slide level1 title-section center">
+<h1>Bloque 2</h1>
+
+</section>
+<section id="de-problema-a-pregunta-científica" class="slide level2">
+<h2>De problema a pregunta científica</h2>
+<blockquote>
+<p><em><span class="citation" data-cites="spiegelhalter2019art">Spiegelhalter (<a href="#/referencias" role="doc-biblioref" onclick="">2019</a>)</span>: “La mayoría de las preguntas son demasiado vagas para ser respondidas”</em></p>
+</blockquote>
+<p>Pasar de un deseo a un experimento requiere precisión. No basta con “querer mejorar”; hay que definir qué mueves (<strong>X</strong>), qué mides (<strong>Y</strong>) y qué dejas fijo (<strong>Z</strong>).</p>
+<p><span class="math display">\text{¿Cómo afecta } X \longrightarrow Y \mid Z?</span></p>
+</section>
+<section id="el-problema-de-la-vaguedad" class="slide level2">
+<h2>El problema de la vaguedad</h2>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Pregunta Vaga</th>
+<th style="text-align: left;">Pregunta Científica (Bici)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">“Siento que la bici se resbala”</td>
+<td style="text-align: left;">“¿Bajar la presión de <strong>50 a 30 PSI</strong> reduce la distancia de derrape en <strong>&gt;2 metros</strong> en curvas de grava a <strong>20 km/h</strong>?”</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">“La bici no frena bien”</td>
+<td style="text-align: left;">“¿Frenar con <strong>un solo dedo</strong> en lugar de cuatro aumenta la distancia de parada en <strong>más de 1 metro</strong> sobre pavimento seco?”</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">“Probar llantas nuevas”</td>
+<td style="text-align: left;">“¿Cambiar a <strong>llantas de tacos</strong> reduce la vibración en el manillar en <strong>al menos 10%</strong> comparado con las lisas en el mismo sendero?”</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="el-problema-de-la-vaguedad-1" class="slide level2">
+<h2>El problema de la vaguedad</h2>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Plantilla (<span class="citation" data-cites="huyen2022designing">Huyen (<a href="#/referencias" role="doc-biblioref" onclick="">2022</a>)</span>)</strong></p>
+</div>
+<div class="callout-content">
+<p><em>“¿[Intervención <strong>X</strong>] mejora [métrica <strong>Y</strong>] en más de [umbral], bajo [condiciones <strong>Z</strong>], en [split específico]?”</em></p>
+<p>Si no puedes completarla, la pregunta <strong>aún no está lista</strong>.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="nuestra-pregunta-científica" class="slide level2">
+<h2>Nuestra pregunta científica</h2>
+<blockquote>
+<p><em>“¿Un modelo <strong>ResNet-18</strong> <span class="citation" data-cites="he2016deep">(<a href="#/referencias" role="doc-biblioref" onclick="">He et&nbsp;al. 2016</a>)</span> con fine-tuning sobre pesos ImageNet y pérdida ponderada (<span class="math inline">w_{pos}=2.0</span>) alcanza <strong>recall ≥ 0.90</strong> para PNEUMONIA en el test set de <span class="citation" data-cites="kermany2018identifying">Kermany et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2018</a>)</span>, con <strong>AUC-ROC mayor</strong> al de un clasificador de mayoría?”</em></p>
+</blockquote>
+<div class="columns">
+<div class="column" style="width:33%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>X · Intervención</strong></p>
+</div>
+<div class="callout-content">
+<p>ResNet-18 + fine-tuning + pérdida ponderada <span class="math inline">w_{pos}=2.0</span></p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:33%;">
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Y · Outcome</strong></p>
+</div>
+<div class="callout-content">
+<p><code>recall_pneumonia ≥ 0.90</code> <code>auc_roc &gt; 0.50</code></p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:34%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Z · Contexto</strong></p>
+</div>
+<div class="callout-content">
+<p>Dataset <span class="citation" data-cites="kermany2018identifying">Kermany et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2018</a>)</span>, split predefinido, <code>seed = 42</code></p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section class="slide level2">
+
+</section></section>
+<section>
+<section id="bloque-3" class="title-slide slide level1 title-section center">
+<h1>Bloque 3</h1>
+
+</section>
+<section id="hipótesis-realidad-o-coincidencia" class="slide level2">
+<h2>Hipótesis: ¿Realidad o Coincidencia?</h2>
+<p><span class="citation" data-cites="wasserman2004all">Wasserman (<a href="#/referencias" role="doc-biblioref" onclick="">2004</a>)</span> En estadística, el marco formal para decidir si un descubrimiento es real se basa en dos hipótesis enfrentadas: <span class="math display">H_0: \text{no hay efecto (Azar)} \qquad H_1: \text{sí hay efecto (Realidad)}</span></p>
+<p>La lógica es <strong>asimétrica</strong>: no aceptamos la hipótesis nula (<span class="math inline">H_0</span>) como una verdad absoluta, simplemente admitimos que los datos actuales no tienen la fuerza suficiente para desmentirla.</p>
+</section>
+<section class="slide level2">
+
+<h3 id="la-analogía-de-la-bicicleta-el-golpe-de-suerte">La analogía de la bicicleta: El “golpe de suerte”</h3>
+<p>Imagina que bajas una curva de grava con <strong>30 PSI</strong> y no te caes. ¿Fue la presión de la llanta o simplemente tuviste suerte en esa vuelta?</p>
+<ul>
+<li><strong><span class="math inline">H_0</span> (Hipótesis Nula):</strong> La presión de 30 PSI <strong>no hace diferencia</strong>. Si no te caíste, fue por puro azar o porque entraste con cuidado.</li>
+<li><strong><span class="math inline">H_1</span> (Hipótesis Alternativa):</strong> La presión de 30 PSI <strong>sí mejora el agarre</strong>. No te caíste porque la física de la llanta cambió.</li>
+</ul>
+</section>
+<section class="slide level2">
+
+<h3 id="por-qué-es-asimétrica">¿Por qué es asimétrica?</h3>
+<p>En la ciencia, la carga de la prueba recae en el cambio.</p>
+<blockquote>
+<p><strong>En la Bici:</strong> Eres un “ciclista con suerte” (<span class="math inline">H_0</span>) hasta que demuestres, tras 20 vueltas perfectas, que es “imposible” que sea solo azar. Solo entonces rechazamos <span class="math inline">H_0</span> y aceptamos que los 30 PSI son la causa real (<span class="math inline">H_1</span>).</p>
+</blockquote>
+<blockquote>
+<p><strong>En ML:</strong> Tu modelo es “mediocre” (<span class="math inline">H_0</span>) hasta que el Recall en el test set sea tan alto que la probabilidad de que haya sido suerte sea insignificante.</p>
+</blockquote>
+</section>
+<section id="marco-formal-de-hipótesis" class="slide level2">
+<h2>Marco formal de hipótesis</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<p>Una hipótesis solo es científica si puedes definir exactamente qué resultado te obligaría a admitir que estás equivocado.</p>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>El mantra de Popper</strong></p>
+</div>
+<div class="callout-content">
+<p>Para que tu hipótesis sobre la bici sea científica, debe ser <strong>falsable</strong>: debes estar dispuesto a admitir que te caíste por la presión y no por un bache fantasma.</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Para el proyecto</strong></p>
+</div>
+<div class="callout-content">
+<p><span class="math display">H_0: \text{recall}_{\text{PNEUMONIA}} &lt; 0.90</span></p>
+<p><span class="math display">H_1: \text{recall}_{\text{PNEUMONIA}} \geq 0.90</span></p>
+<p><strong>Rechazo de <span class="math inline">H_0</span>:</strong> recall ≥ 0.90 <strong>y</strong> AUC-ROC &gt; 0.50</p>
+<p><strong>Aceptación de <span class="math inline">H_0</span>:</strong> cualquier otro resultado</p>
+<p>El test se ejecuta <strong>una sola vez</strong> sobre el test set.</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="hipótesis-falsables-vs.-no-falsables" class="slide level2">
+<h2>Hipótesis falsables vs.&nbsp;no falsables</h2>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>No falsable</th>
+<th>Falsable</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>“Con más datos el modelo mejoraría”</td>
+<td>“Duplicar el training set incrementa AUC-ROC ≥ 0.02”</td>
+</tr>
+<tr class="even">
+<td>“ResNet es mejor para imágenes médicas”</td>
+<td>“ResNet-18 supera a regresión logística en AUC-ROC en el test set”</td>
+</tr>
+<tr class="odd">
+<td>“El modelo aprendió representaciones útiles”</td>
+<td>“recall PNEUMONIA ≥ 0.90 con umbral 0.5 en test”</td>
+</tr>
+<tr class="even">
+<td>“Con más épocas mejoraría”</td>
+<td>“30 épocas da recall &gt; 15 épocas en el val set”</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data-snooping" class="slide level2">
+<h2>“Data Snooping”</h2>
+<p><span class="citation" data-cites="hastie2009elements">Hastie, Tibshirani, y Friedman (<a href="#/referencias" role="doc-biblioref" onclick="">2009</a>)</span> advierte sobre las <strong>comparaciones múltiples</strong>: si pruebas 100 presiones de llanta y solo reportas la única con la que no te caíste, estás haciendo trampa. El éxito fue azar, no ciencia.</p>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Regla de Oro: El Muro de Fuego</strong></p>
+</div>
+<div class="callout-content">
+<p>Para que tu métrica sea “honesta”, el proceso debe ser:</p>
+<ol type="1">
+<li><strong>Selección:</strong> Probar todo en el set de <strong>Validación</strong> (tu curva de práctica).</li>
+<li><strong>Evaluación:</strong> Pasar por el set de <strong>Test</strong> (la carrera real) <strong>una sola vez</strong>.</li>
+</ol>
+</div>
+</div>
+</div>
+</section>
+<section class="slide level2">
+
+</section></section>
+<section>
+<section id="pausa-ejercicio-en-vivo" class="title-slide slide level1 title-section center">
+<h1>⏸ Pausa · Ejercicio en vivo</h1>
+
+</section>
+<section id="completa-la-tabla-experimental" class="slide level2">
+<h2>Completa la tabla experimental</h2>
+<p><em>5 minutos · Chat de Zoom</em></p>
+</section>
+<section id="qué-tan-bien-conoces-tu-experimento" class="slide level2">
+<h2>¿Qué tan bien conoces tu experimento?</h2>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Instrucciones — responde en el <strong>chat de Zoom</strong></strong></p>
+</div>
+<div class="callout-content">
+<p>Completa la siguiente tabla con un experimento de tu elección (puede ser el del proyecto o uno hipotético).</p>
+<p>Tienes <strong>5 minutos</strong>. Escribe tus respuestas directamente en el chat, una línea por campo. No hay respuestas incorrectas: el objetivo es detectar qué falta definir antes de escribir código.</p>
+<p>Cuando termines, <strong>no envíes todavía</strong> — el instructor dirá cuándo publicar todos al mismo tiempo.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="slide level2">
+
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Campo</th>
+<th>Tu respuesta en el chat</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Pregunta científica</strong></td>
+<td>¿…?</td>
+</tr>
+<tr class="even">
+<td><strong>Hipótesis <span class="math inline">H_0</span></strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Hipótesis <span class="math inline">H_1</span></strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Variable independiente</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Variable dependiente</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Métrica primaria con umbral</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Variables controladas</strong> (mínimo 3)</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Baseline de comparación</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>¿Qué resultado refutaría <span class="math inline">H_1</span>?</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="respuestas-de-referencia" class="slide level2">
+<h2>Respuestas de referencia</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Pregunta e hipótesis</strong></p>
+</div>
+<div class="callout-content">
+<p><strong>Pregunta:</strong> “¿ResNet-18 con fine-tuning y pérdida ponderada (<span class="math inline">w_{pos}=2.0</span>) alcanza recall ≥ 0.90 en PNEUMONIA en el test set de <span class="citation" data-cites="kermany2018identifying">Kermany et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2018</a>)</span>, con AUC-ROC mayor al del clasificador de mayoría?”</p>
+<p><strong><span class="math inline">H_0</span>:</strong> recall<span class="math inline">_{    ext{PNEUMONIA}}</span> &lt; 0.90</p>
+<p><strong><span class="math inline">H_1</span>:</strong> recall<span class="math inline">_{    ext{PNEUMONIA}}</span> ≥ 0.90</p>
+<p><strong>Criterio de rechazo de <span class="math inline">H_0</span>:</strong> recall ≥ 0.90 <strong>y</strong> AUC-ROC &gt; 0.50 — evaluado <strong>una sola vez</strong> en el test set.</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Variables y métrica</strong></p>
+</div>
+<div class="callout-content">
+<p><strong>Variable independiente:</strong> arquitectura ResNet-18 + régimen de fine-tuning con <span class="math inline">w_{pos}=2.0</span></p>
+<p><strong>Variable dependiente:</strong> recall de la clase PNEUMONIA en el test set</p>
+<p><strong>Métrica primaria:</strong> recall ≥ 0.90 (restricción clínica)</p>
+<p><strong>Variables controladas:</strong> semilla <code>seed=42</code>, split predefinido, batch=32, lr=0.001, versión de PyTorch</p>
+<p><strong>Baseline:</strong> clasificador de mayoría (siempre predice PNEUMONIA)</p>
+<p><strong>Refuta <span class="math inline">H_1</span>:</strong> recall &lt; 0.90 <strong>o</strong> AUC-ROC ≤ 0.50 en el test set</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section class="slide level2">
+
+</section></section>
+<section>
+<section id="bloque-4" class="title-slide slide level1 section-divider center">
+<h1>Bloque 4</h1>
+
+</section>
+<section id="variables-doe-y-principios-de-robustez" class="slide level2">
+<h2>Variables, DoE y principios de robustez</h2>
+<p><em><span class="citation" data-cites="montgomery2017design">Montgomery (<a href="#/referencias" role="doc-biblioref" onclick="">2017</a>)</span> · <span class="citation" data-cites="hastie2009elements">Hastie, Tibshirani, y Friedman (<a href="#/referencias" role="doc-biblioref" onclick="">2009</a>)</span> · <span class="citation" data-cites="pineau2021reproducibility">Pineau et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2021</a>)</span></em></p>
+</section>
+<section id="qué-es-el-diseño-de-experimentos-doe" class="slide level2">
+<h2>¿Qué es el Diseño de Experimentos (DoE)?</h2>
+<p><strong>Diseñar experimentos</strong> ≠ probar al azar.<br>
+Es variar factores de forma <strong>sistemática</strong> para medir efectos reales.</p>
+<div class="columns">
+<div class="column" style="width:50%;">
+<p><strong>Conceptos clave</strong></p>
+<ul>
+<li><strong>Factor:</strong> variable manipulada (<code>C</code>)</li>
+<li><strong>Nivel:</strong> valor del factor (<code>0.01</code>, <code>1</code>, <code>100</code>)</li>
+<li><strong>Respuesta:</strong> métrica objetivo (<code>recall</code>)</li>
+<li><strong>Tratamiento:</strong> combinación de factores</li>
+</ul>
+</div><div class="column" style="width:50%;">
+<p><strong>¿Por qué no probar todo?</strong></p>
+<ul>
+<li>3 factores × 5 niveles = <strong>125 corridas</strong></li>
+<li>Costo crece exponencialmente</li>
+<li>DoE → menos corridas, mismas conclusiones</li>
+<li>Mantiene <strong>validez estadística</strong></li>
+</ul>
+</div></div>
+</section>
+<section id="fases-del-diseño-de-experimentos-doe" class="slide level2">
+<h2>Fases del Diseño de Experimentos (DoE)</h2>
+<p>Diseñar bien un experimento es seguir un <strong>proceso estructurado</strong>, no solo correr modelos.</p>
+<div class="columns">
+<div class="column" style="width:50%;">
+<p><strong>1. Definir el problema</strong> - Pregunta clara y medible</p>
+<p><strong>2. Elegir variables</strong> - Factores y respuesta</p>
+<p><strong>3. Screening</strong> - Identificar variables importantes<br>
+- Reducir el espacio de búsqueda</p>
+</div><div class="column" style="width:50%;">
+<p><strong>4. Diseñar experimento</strong> - OFAT o factorial</p>
+<p><strong>5. Ejecutar y analizar</strong> - Control (semilla, datos)<br>
+- Métricas e interacciones</p>
+<p><strong>6. Concluir</strong> - Qué importa y por qué</p>
+</div></div>
+</section>
+<section id="lo-que-haremos-hoy" class="slide level2">
+<h2>Lo que haremos hoy</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Pregunta</strong></p>
+</div>
+<div class="callout-content">
+<p>¿Regularización <code>C</code> o <code>class_weight</code> impacta más el <code>recall</code> de PNEUMONIA?</p>
+</div>
+</div>
+</div>
+<div class="columns">
+<div class="column" style="width:50%;">
+<p><strong>Plan</strong></p>
+<ul>
+<li>Modelo: <code>LogisticRegression</code></li>
+<li>Factores:
+<ul>
+<li><code>C</code> ∈ {0.01, 1, 100}</li>
+<li><code>class_weight</code> ∈ {None, balanced}</li>
+</ul></li>
+<li>Métrica: <code>recall_pneumonia</code></li>
+<li>Comparar vs <strong>baseline</strong></li>
+</ul>
+</div><div class="column" style="width:50%;">
+<p><strong>¿Por qué simple?</strong></p>
+<ul>
+<li>Resultados en segundos</li>
+<li>Aísla efectos sin ruido</li>
+<li>Escala directo a modelos complejos (ResNet)</li>
+</ul>
+</div></div>
+</section>
+<section id="regularización-c" class="slide level2">
+<h2>Regularización <code>C</code></h2>
+
+<img data-src="https://media.geeksforgeeks.org/wp-content/uploads/20230904101848/overfitting_21-2.png" class="r-stretch"></section>
+<section id="ponderación-de-clases-class_weight" class="slide level2">
+<h2>Ponderación de clases <code>class_weight</code></h2>
+
+<img data-src="img/weighted.png" class="r-stretch"></section>
+<section id="variable-respuesta-recall" class="slide level2">
+<h2>Variable respuesta: Recall</h2>
+<p><span class="math display">
+\text{Recall} = \frac{TP}{TP + FN}
+</span></p>
+<ul>
+<li><strong>TP:</strong> detecta correctamente neumonía</li>
+<li><strong>FN:</strong> no detecta un caso real</li>
+</ul>
+<p><strong>Interpretación:</strong><br>
+Proporción de pacientes con neumonía que el modelo logra identificar.</p>
+<p><strong>Clave en medicina:</strong><br>
+Minimizar FN → maximizar recall.</p>
+<blockquote>
+<p>No buscamos accuracy global, sino <strong>no dejar pasar casos reales</strong>.</p>
+</blockquote>
+</section>
+<section class="slide level2">
+
+
+<img data-src="https://i0.wp.com/spotintelligence.com/wp-content/uploads/2024/04/precision-recall.jpg?fit=1200%2C675&amp;ssl=1" class="r-stretch"></section>
+<section id="setup-del-experimento" class="slide level2">
+<h2>Setup del experimento</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Controlamos la aleatoriedad para que el experimento sea <strong>reproducible y justo</strong>.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Por qué importa?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Sin semilla → resultados cambian en cada corrida<br>
+</li>
+<li>Con semilla → mismas condiciones → comparación válida<br>
+</li>
+<li>Evitamos <strong>confounding por azar</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="code-fold">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href=""></a><span class="co"># Setup básico + semilla global</span></span>
+<span id="cb1-2"><a href=""></a><span class="im">import</span> numpy <span class="im">as</span> np, random</span>
+<span id="cb1-3"><a href=""></a>SEED <span class="op">=</span> <span class="dv">42</span></span>
+<span id="cb1-4"><a href=""></a>random.seed(SEED)</span>
+<span id="cb1-5"><a href=""></a>np.random.seed(SEED)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="setup-del-experimento-código" class="slide level2">
+<h2>Setup del experimento — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href=""></a><span class="co"># colab_bloque4.ipynb — Celda 1: Setup</span></span>
+<span id="cb2-2"><a href=""></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-3"><a href=""></a><span class="im">import</span> random</span>
+<span id="cb2-4"><a href=""></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb2-5"><a href=""></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
+<span id="cb2-6"><a href=""></a><span class="im">from</span> sklearn.dummy <span class="im">import</span> DummyClassifier</span>
+<span id="cb2-7"><a href=""></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> (</span>
+<span id="cb2-8"><a href=""></a>    classification_report, recall_score,</span>
+<span id="cb2-9"><a href=""></a>    roc_auc_score, ConfusionMatrixDisplay</span>
+<span id="cb2-10"><a href=""></a>)</span>
+<span id="cb2-11"><a href=""></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb2-12"><a href=""></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-13"><a href=""></a></span>
+<span id="cb2-14"><a href=""></a><span class="co"># Semilla global — controla el confounding</span></span>
+<span id="cb2-15"><a href=""></a>SEED <span class="op">=</span> <span class="dv">42</span></span>
+<span id="cb2-16"><a href=""></a>random.seed(SEED)</span>
+<span id="cb2-17"><a href=""></a>np.random.seed(SEED)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="preparación-de-datos" class="slide level2">
+<h2>Preparación de datos</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Construimos un problema <strong>controlado y realista</strong> (desbalanceado).</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Qué estamos simulando?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Clasificación de neumonía<br>
+</li>
+<li>Datos desbalanceados (muchos positivos)<br>
+</li>
+<li>Variables con señal + ruido</li>
+</ul>
+<p>→ Hace relevante medir <strong>recall</strong></p>
+</div>
+</div>
+</div>
+<div class="code-fold">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href=""></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_classification</span>
+<span id="cb3-2"><a href=""></a></span>
+<span id="cb3-3"><a href=""></a>X, y <span class="op">=</span> make_classification(</span>
+<span id="cb3-4"><a href=""></a>    n_samples<span class="op">=</span><span class="dv">1000</span>, n_features<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb3-5"><a href=""></a>    n_informative<span class="op">=</span><span class="dv">8</span>, n_redundant<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb3-6"><a href=""></a>    weights<span class="op">=</span>[<span class="fl">0.26</span>, <span class="fl">0.74</span>],</span>
+<span id="cb3-7"><a href=""></a>    random_state<span class="op">=</span>SEED</span>
+<span id="cb3-8"><a href=""></a>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="división-de-datos-blocking" class="slide level2">
+<h2>División de datos (blocking)</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Aseguramos que train y validation tengan <strong>la misma proporción de clases</strong>.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Por qué es crítico?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Sin <code>stratify</code> → splits distintos por azar<br>
+</li>
+<li>Comparaciones injustas entre modelos<br>
+</li>
+<li>Con <code>stratify</code> → condiciones equivalentes</li>
+</ul>
+<p>→ Esto es <strong>blocking por clase</strong></p>
+</div>
+</div>
+</div>
+<div class="code-fold">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href=""></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb4-2"><a href=""></a></span>
+<span id="cb4-3"><a href=""></a>X_tr, X_val, y_tr, y_val <span class="op">=</span> train_test_split(</span>
+<span id="cb4-4"><a href=""></a>    X, y,</span>
+<span id="cb4-5"><a href=""></a>    test_size<span class="op">=</span><span class="fl">0.20</span>,</span>
+<span id="cb4-6"><a href=""></a>    stratify<span class="op">=</span>y,</span>
+<span id="cb4-7"><a href=""></a>    random_state<span class="op">=</span>SEED</span>
+<span id="cb4-8"><a href=""></a>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="verificación-del-experimento" class="slide level2">
+<h2>Verificación del experimento</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Resultado</strong></p>
+</div>
+<div class="callout-content">
+<p>Train: 800 | pos = 0.740<br>
+Val : 200 | pos = 0.740</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Misma distribución en ambos sets<br>
+</li>
+<li>No hay sesgo por el split<br>
+</li>
+<li>Podemos comparar modelos de forma <strong>válida</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Mensaje clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Antes de entrenar modelos, ya diseñamos el experimento.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="taxonomía-de-variables-doe-aplicado" class="slide level2">
+<h2>Taxonomía de variables (DoE aplicado)</h2>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Tipo</th>
+<th>En este experimento</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Independiente</strong></td>
+<td><code>C</code>, <code>class_weight</code></td>
+</tr>
+<tr class="even">
+<td><strong>Dependiente</strong></td>
+<td><code>recall_pneumonia</code></td>
+</tr>
+<tr class="odd">
+<td><strong>Controlada</strong></td>
+<td><code>SEED</code>, mismo split, mismos datos</td>
+</tr>
+<tr class="even">
+<td><strong>Confusora</strong></td>
+<td>aleatoriedad no controlada</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Error común</strong></p>
+</div>
+<div class="callout-content">
+<p>Cambiar múltiples variables <strong>sin control</strong>:</p>
+<ul>
+<li><code>C=0.01, None</code><br>
+vs<br>
+</li>
+<li><code>C=100, balanced</code></li>
+</ul>
+<p>→ No sabes qué causó el efecto</p>
+</div>
+</div>
+</div>
+</section>
+<section id="baseline-antes-de-doe-código" class="slide level2">
+<h2>Baseline antes de DoE — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href=""></a><span class="co"># Celda 3: Baseline nivel 0 — siempre predice PNEUMONIA</span></span>
+<span id="cb5-2"><a href=""></a>dummy <span class="op">=</span> DummyClassifier(strategy<span class="op">=</span><span class="st">"most_frequent"</span>)</span>
+<span id="cb5-3"><a href=""></a>dummy.fit(X_tr, y_tr)</span>
+<span id="cb5-4"><a href=""></a>y_pred_dummy <span class="op">=</span> dummy.predict(X_val)</span>
+<span id="cb5-5"><a href=""></a></span>
+<span id="cb5-6"><a href=""></a><span class="bu">print</span>(<span class="st">"=== Baseline: Clasificador de mayoría ==="</span>)</span>
+<span id="cb5-7"><a href=""></a><span class="bu">print</span>(classification_report(</span>
+<span id="cb5-8"><a href=""></a>    y_val, y_pred_dummy,</span>
+<span id="cb5-9"><a href=""></a>    target_names<span class="op">=</span>[<span class="st">"NORMAL"</span>, <span class="st">"PNEUMONIA"</span>]</span>
+<span id="cb5-10"><a href=""></a>))</span>
+<span id="cb5-11"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Recall PNEUMONIA : </span><span class="sc">{</span>recall_score(y_val, y_pred_dummy)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb5-12"><a href=""></a><span class="bu">print</span>(<span class="ss">f"AUC-ROC          : </span><span class="sc">{</span>roc_auc_score(y_val, dummy.predict_proba(X_val)[:,<span class="dv">1</span>])<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="baseline" class="slide level2">
+<h2>Baseline</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Resultado</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Recall (PNEUMONIA): <strong>1.00</strong></li>
+<li>AUC-ROC: <strong>0.50</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Recall alto → detecta todos los casos<br>
+</li>
+<li>Pero AUC = 0.5 → <strong>no discrimina nada</strong><br>
+</li>
+<li>Predice siempre “PNEUMONIA”</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Un buen modelo debe mejorar <strong>recall y discriminación</strong>, no solo uno.</p>
+<p>→ Este baseline es el <strong>piso mínimo</strong>.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="doe-ofat-vs-factorial" class="slide level2">
+<h2>DoE: OFAT vs Factorial</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<p><strong>OFAT (uno a la vez)</strong></p>
+<ul>
+<li>Cambias <strong>un factor</strong>, fijas el otro<br>
+</li>
+<li>Ej:
+<ul>
+<li><code>C</code> con <code>class_weight=None</code></li>
+<li>luego <code>class_weight</code> con <code>C=1</code></li>
+</ul></li>
+<li>Runs: <strong>4</strong></li>
+</ul>
+<p>No ves combinaciones reales</p>
+</div><div class="column" style="width:50%;">
+<p><strong>Factorial completo (2²)</strong></p>
+<ul>
+<li><p>Pruebas <strong>todas las combinaciones</strong><br>
+</p></li>
+<li><p><code>C</code> ∈ {0.01, 100}<br>
+</p></li>
+<li><p><code>class_weight</code> ∈ {None, balanced}</p></li>
+<li><p>Runs: <strong>4</strong></p></li>
+</ul>
+<p>Ves <strong>interacciones</strong></p>
+</div></div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>El mundo no cambia una variable a la vez.</p>
+<p>→ El factorial captura cómo los factores <strong>se combinan</strong>.</p>
+</div>
+</div>
+</div>
+<p>–</p>
+</section>
+<section id="factorial-completo-23" class="slide level2">
+<h2>Factorial completo (2×3)</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Probamos <strong>todas las combinaciones</strong> de:</p>
+<ul>
+<li><code>C</code> ∈ {0.01, 1, 100}<br>
+</li>
+<li><code>class_weight</code> ∈ {None, balanced}</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Qué medimos?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li><strong>Recall</strong> (detectar neumonía)<br>
+</li>
+<li><strong>AUC</strong> (discriminación)</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="code-fold">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href=""></a><span class="co"># Entrena todos los modelos y guarda recall / AUC</span></span>
+<span id="cb6-2"><a href=""></a><span class="cf">for</span> C <span class="kw">in</span> [<span class="fl">0.01</span>, <span class="fl">1.0</span>, <span class="fl">100.0</span>]:</span>
+<span id="cb6-3"><a href=""></a>    <span class="cf">for</span> cw <span class="kw">in</span> [<span class="va">None</span>, <span class="st">"balanced"</span>]:</span>
+<span id="cb6-4"><a href=""></a>        ...</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="resultados" class="slide level2">
+<h2>Resultados</h2>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Observación principal</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li><code>class_weight="balanced"</code><br>
+→ <strong>sube recall ~ +0.12</strong></li>
+<li><code>C</code><br>
+→ efecto <strong>pequeño</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Insight (interacción)</strong></p>
+</div>
+<div class="callout-content">
+<p>El efecto fuerte viene de <code>class_weight</code>,<br>
+pero <strong>depende poco de <code>C</code></strong>.</p>
+<p>→ No todos los factores importan igual</p>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Qué habría pasado con OFAT?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Habrías visto efectos por separado<br>
+</li>
+<li>Pero no esta <strong>asimetría clara</strong></li>
+</ul>
+<p>→ El factorial revela la estructura real</p>
+</div>
+</div>
+</div>
+</section>
+<section id="qué-es-una-interacción" class="slide level2">
+<h2>¿Qué es una interacción?</h2>
+<p>Hay <strong>interacción</strong> cuando el efecto de una variable depende del valor de otra.</p>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="aeff946c" class="cell" data-execution_count="1">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-2-output-1.png" width="523" height="377"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Cómo verlo</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Líneas paralelas → no interacción<br>
+</li>
+<li>Líneas cambian distinto → interacción</li>
+</ul>
+<p>→ el efecto depende del contexto</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="visualizar-la-interacción-código" class="slide level2">
+<h2>Visualizar la interacción — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href=""></a><span class="co"># Celda 5: Gráfica de interacción (interaction plot)</span></span>
+<span id="cb7-2"><a href=""></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb7-3"><a href=""></a></span>
+<span id="cb7-4"><a href=""></a>rows <span class="op">=</span> []</span>
+<span id="cb7-5"><a href=""></a><span class="cf">for</span> C <span class="kw">in</span> C_levels:</span>
+<span id="cb7-6"><a href=""></a>    <span class="cf">for</span> cw <span class="kw">in</span> cw_levels:</span>
+<span id="cb7-7"><a href=""></a>        key <span class="op">=</span> <span class="ss">f"C=</span><span class="sc">{</span>C<span class="sc">}</span><span class="ss">, cw=</span><span class="sc">{</span>cw<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb7-8"><a href=""></a>        rows.append({</span>
+<span id="cb7-9"><a href=""></a>            <span class="st">"C"</span>: <span class="bu">str</span>(C),</span>
+<span id="cb7-10"><a href=""></a>            <span class="st">"class_weight"</span>: <span class="bu">str</span>(cw),</span>
+<span id="cb7-11"><a href=""></a>            <span class="st">"recall"</span>: results[key][<span class="st">"recall"</span>],</span>
+<span id="cb7-12"><a href=""></a>            <span class="st">"auc"</span>:    results[key][<span class="st">"auc"</span>],</span>
+<span id="cb7-13"><a href=""></a>        })</span>
+<span id="cb7-14"><a href=""></a>df <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb7-15"><a href=""></a></span>
+<span id="cb7-16"><a href=""></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>))</span>
+<span id="cb7-17"><a href=""></a><span class="cf">for</span> cw, grp <span class="kw">in</span> df.groupby(<span class="st">"class_weight"</span>):</span>
+<span id="cb7-18"><a href=""></a>    axes[<span class="dv">0</span>].plot(grp[<span class="st">"C"</span>], grp[<span class="st">"recall"</span>], <span class="st">"o-"</span>,</span>
+<span id="cb7-19"><a href=""></a>                 label<span class="op">=</span><span class="ss">f"cw=</span><span class="sc">{</span>cw<span class="sc">}</span><span class="ss">"</span>, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb7-20"><a href=""></a>    axes[<span class="dv">1</span>].plot(grp[<span class="st">"C"</span>], grp[<span class="st">"auc"</span>], <span class="st">"s--"</span>,</span>
+<span id="cb7-21"><a href=""></a>                 label<span class="op">=</span><span class="ss">f"cw=</span><span class="sc">{</span>cw<span class="sc">}</span><span class="ss">"</span>, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb7-22"><a href=""></a><span class="cf">for</span> ax, metric <span class="kw">in</span> <span class="bu">zip</span>(axes, [<span class="st">"Recall PNEUMONIA"</span>, <span class="st">"AUC-ROC"</span>]):</span>
+<span id="cb7-23"><a href=""></a>    ax.set_xlabel(<span class="st">"C (regularización)"</span>)</span>
+<span id="cb7-24"><a href=""></a>    ax.set_ylabel(metric)<span class="op">;</span> ax.legend()<span class="op">;</span> ax.grid(alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb7-25"><a href=""></a>    ax.axhline(<span class="fl">0.90</span>, color<span class="op">=</span><span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">":"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>,</span>
+<span id="cb7-26"><a href=""></a>               label<span class="op">=</span><span class="st">"objetivo recall ≥ 0.90"</span>)</span>
+<span id="cb7-27"><a href=""></a>axes[<span class="dv">0</span>].legend()<span class="op">;</span> plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="interaction-plot-resultado" class="slide level2">
+<h2>Interaction plot — resultado</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="b5281a5d" class="cell" data-execution_count="2">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-3-output-1.png" width="821" height="451"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Cómo leerlo</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li><p><strong>Líneas paralelas</strong><br>
+→ sin interacción</p></li>
+<li><p><strong>Líneas se cruzan</strong><br>
+→ interacción fuerte</p></li>
+</ul>
+<hr>
+<p><strong>Aquí:</strong> - Líneas casi paralelas<br>
+- Brecha constante</p>
+<p>→ <code>class_weight</code> domina<br>
+→ <code>C</code> casi no cambia el resultado</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="qué-es-el-confounding" class="slide level2">
+<h2>¿Qué es el confounding?</h2>
+<p>Es cuando un factor oculto cambia al mismo tiempo que la variable que estás probando. No sabes qué causó el efecto</p>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Ejemplo (bici)</strong></p>
+</div>
+<div class="callout-content">
+<p>Quieres saber por qué te caíste:</p>
+<ul>
+<li>Hipótesis: <strong>la presión de las llantas</strong></li>
+<li>Pero ese día también ibas <strong>más rápido</strong></li>
+</ul>
+<p>Si te caes:</p>
+<p>→ ¿Fue la presión o la velocidad?<br>
+→ <strong>No puedes saber</strong></p>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Problema</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Conclusión incorrecta<br>
+</li>
+<li>Atribuyes el efecto a la variable equivocada</li>
+</ul>
+<p>→ estás midiendo <strong>dos cosas a la vez</strong></p>
+</div>
+</div>
+</div>
+</section>
+<section id="efecto-del-confounding-código" class="slide level2">
+<h2>Efecto del confounding — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href=""></a><span class="co"># Celda 6: Demostración de confounding</span></span>
+<span id="cb8-2"><a href=""></a><span class="co"># ¿Qué pasa si NO fijamos la semilla en el split?</span></span>
+<span id="cb8-3"><a href=""></a></span>
+<span id="cb8-4"><a href=""></a>recalls_sin_seed <span class="op">=</span> []</span>
+<span id="cb8-5"><a href=""></a>recalls_con_seed <span class="op">=</span> []</span>
+<span id="cb8-6"><a href=""></a></span>
+<span id="cb8-7"><a href=""></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">20</span>):</span>
+<span id="cb8-8"><a href=""></a>    <span class="co"># SIN semilla: split distinto cada vez</span></span>
+<span id="cb8-9"><a href=""></a>    X_tr_r, X_val_r, y_tr_r, y_val_r <span class="op">=</span> train_test_split(</span>
+<span id="cb8-10"><a href=""></a>        X, y, test_size<span class="op">=</span><span class="fl">0.20</span>, stratify<span class="op">=</span>y   <span class="co"># sin random_state</span></span>
+<span id="cb8-11"><a href=""></a>    )</span>
+<span id="cb8-12"><a href=""></a>    m <span class="op">=</span> LogisticRegression(C<span class="op">=</span><span class="fl">1.0</span>, class_weight<span class="op">=</span><span class="st">"balanced"</span>,</span>
+<span id="cb8-13"><a href=""></a>                           max_iter<span class="op">=</span><span class="dv">1000</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb8-14"><a href=""></a>    m.fit(X_tr_r, y_tr_r)</span>
+<span id="cb8-15"><a href=""></a>    recalls_sin_seed.append(recall_score(y_val_r, m.predict(X_val_r)))</span>
+<span id="cb8-16"><a href=""></a></span>
+<span id="cb8-17"><a href=""></a>    <span class="co"># CON semilla fija: mismo split siempre</span></span>
+<span id="cb8-18"><a href=""></a>    X_tr_f, X_val_f, y_tr_f, y_val_f <span class="op">=</span> train_test_split(</span>
+<span id="cb8-19"><a href=""></a>        X, y, test_size<span class="op">=</span><span class="fl">0.20</span>, stratify<span class="op">=</span>y, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb8-20"><a href=""></a>    m2 <span class="op">=</span> LogisticRegression(C<span class="op">=</span><span class="fl">1.0</span>, class_weight<span class="op">=</span><span class="st">"balanced"</span>,</span>
+<span id="cb8-21"><a href=""></a>                            max_iter<span class="op">=</span><span class="dv">1000</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb8-22"><a href=""></a>    m2.fit(X_tr_f, y_tr_f)</span>
+<span id="cb8-23"><a href=""></a>    recalls_con_seed.append(recall_score(y_val_f, m2.predict(X_val_f)))</span>
+<span id="cb8-24"><a href=""></a></span>
+<span id="cb8-25"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Sin semilla → recall: </span><span class="sc">{</span>np<span class="sc">.</span>mean(recalls_sin_seed)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(recalls_sin_seed)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb8-26"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Con semilla → recall: </span><span class="sc">{</span>np<span class="sc">.</span>mean(recalls_con_seed)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(recalls_con_seed)<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="efecto-del-confounding" class="slide level2">
+<h2>Efecto del confounding</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="0bec192a" class="cell" data-execution_count="3">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-4-output-1.png" width="531" height="376"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Resultado</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Sin semilla → <strong>0.957 ± 0.018</strong><br>
+</li>
+<li>Con semilla → <strong>0.959 ± 0.000</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Sin control → el resultado <strong>fluctúa</strong><br>
+</li>
+<li>Con control → resultado <strong>estable</strong></li>
+</ul>
+<p>→ El confounding introduce ruido real</p>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Riesgo</strong></p>
+</div>
+<div class="callout-content">
+<p>Podrías reportar <strong>0.975</strong> por azar</p>
+<p>→ sobreestimar el modelo</p>
+<p>→ decisión clínica incorrecta</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="qué-es-la-replicación" class="slide level2">
+<h2>¿Qué es la replicación?</h2>
+<p>Repetir el mismo experimento bajo las mismas condiciones<br>
+para ver si el resultado se mantiene.</p>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Ejemplo (bici)</strong></p>
+</div>
+<div class="callout-content">
+<p>Repites el mismo recorrido varias veces:</p>
+<ul>
+<li>Si siempre te caes → el problema es real<br>
+</li>
+<li>Si a veces sí y a veces no → hay variabilidad</li>
+</ul>
+<p>→ no tienes una conclusión sólida</p>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Por qué importa?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Un solo resultado puede ser <strong>suerte</strong><br>
+</li>
+<li>Necesitas saber si el efecto es <strong>consistente</strong></li>
+</ul>
+<p>→ mide la <strong>varianza del modelo</strong></p>
+</div>
+</div>
+</div>
+</section>
+<section id="replicación-código" class="slide level2">
+<h2>Replicación — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href=""></a><span class="co"># Celda 7: Replicación con diferentes semillas de inicialización</span></span>
+<span id="cb9-2"><a href=""></a><span class="co"># Muestra la varianza real del modelo, no la del split</span></span>
+<span id="cb9-3"><a href=""></a></span>
+<span id="cb9-4"><a href=""></a>best_config <span class="op">=</span> {<span class="st">"C"</span>: <span class="fl">1.0</span>, <span class="st">"class_weight"</span>: <span class="st">"balanced"</span>}</span>
+<span id="cb9-5"><a href=""></a></span>
+<span id="cb9-6"><a href=""></a>recalls_repl <span class="op">=</span> []</span>
+<span id="cb9-7"><a href=""></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">10</span>):</span>
+<span id="cb9-8"><a href=""></a>    m <span class="op">=</span> LogisticRegression(</span>
+<span id="cb9-9"><a href=""></a>        <span class="op">**</span>best_config,</span>
+<span id="cb9-10"><a href=""></a>        max_iter<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb9-11"><a href=""></a>        random_state<span class="op">=</span>SEED <span class="op">+</span> i      <span class="co"># semilla distinta por réplica</span></span>
+<span id="cb9-12"><a href=""></a>    )</span>
+<span id="cb9-13"><a href=""></a>    m.fit(X_tr, y_tr)              <span class="co"># mismo X_tr, X_val siempre</span></span>
+<span id="cb9-14"><a href=""></a>    r <span class="op">=</span> recall_score(y_val, m.predict(X_val))</span>
+<span id="cb9-15"><a href=""></a>    recalls_repl.append(r)</span>
+<span id="cb9-16"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f"  Réplica </span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">:2d}</span><span class="ss"> | recall=</span><span class="sc">{</span>r<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb9-17"><a href=""></a></span>
+<span id="cb9-18"><a href=""></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Media ± std: </span><span class="sc">{</span>np<span class="sc">.</span>mean(recalls_repl)<span class="sc">:.4f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(recalls_repl)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb9-19"><a href=""></a><span class="bu">print</span>(<span class="ss">f"→ std &lt; 0.02: </span><span class="sc">{</span><span class="st">'✓ Experimento estable'</span> <span class="cf">if</span> np<span class="sc">.</span>std(recalls_repl) <span class="op">&lt;</span> <span class="fl">0.02</span> <span class="cf">else</span> <span class="st">'✗ Alta varianza — revisar'</span><span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="replicación" class="slide level2">
+<h2>Replicación</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="b8f3e03f" class="cell" data-execution_count="4">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-5-output-1.png" width="523" height="378"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Resultado</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Todas las corridas → <strong>0.9595</strong><br>
+</li>
+<li>Media ± std → <strong>0.9595 ± 0.0000</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Cero variación → experimento <strong>estable</strong><br>
+</li>
+<li>Resultado <strong>reproducible</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Contexto</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Aquí: modelo determinista<br>
+</li>
+<li>En redes → varianza real (±2–4 pts)</li>
+</ul>
+<p>→ replicar es obligatorio</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="qué-es-el-blocking" class="slide level2">
+<h2>¿Qué es el blocking?</h2>
+<p>Organizar el experimento para comparar en <strong>condiciones equivalentes</strong>.</p>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Problema sin blocking</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Cambian las condiciones<br>
+</li>
+<li>El resultado varía por factores externos</li>
+</ul>
+<p>→ ruido que no viene del modelo</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Blocking = controlar el contexto</p>
+<p>→ “comparar peras con peras”</p>
+</div>
+</div>
+</div>
+</section>
+<section id="blocking-código" class="slide level2">
+<h2>Blocking — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href=""></a><span class="co"># Celda 8: Demostración de blocking estratificado</span></span>
+<span id="cb10-2"><a href=""></a><span class="co"># ¿Cuánto varía el recall si el split no está estratificado?</span></span>
+<span id="cb10-3"><a href=""></a></span>
+<span id="cb10-4"><a href=""></a><span class="bu">print</span>(<span class="st">"=== Split SIN estratificación (sin blocking) ==="</span>)</span>
+<span id="cb10-5"><a href=""></a><span class="cf">for</span> trial <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>):</span>
+<span id="cb10-6"><a href=""></a>    X_tr_b, X_val_b, y_tr_b, y_val_b <span class="op">=</span> train_test_split(</span>
+<span id="cb10-7"><a href=""></a>        X, y, test_size<span class="op">=</span><span class="fl">0.20</span>,</span>
+<span id="cb10-8"><a href=""></a>        stratify<span class="op">=</span><span class="va">None</span>,             <span class="co"># sin blocking</span></span>
+<span id="cb10-9"><a href=""></a>        random_state<span class="op">=</span>trial <span class="op">*</span> <span class="dv">7</span></span>
+<span id="cb10-10"><a href=""></a>    )</span>
+<span id="cb10-11"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f"  Trial </span><span class="sc">{</span>trial<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss"> | pos_val=</span><span class="sc">{</span>y_val_b<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">"</span>, end<span class="op">=</span><span class="st">""</span>)</span>
+<span id="cb10-12"><a href=""></a>    m <span class="op">=</span> LogisticRegression(C<span class="op">=</span><span class="fl">1.0</span>, class_weight<span class="op">=</span><span class="st">"balanced"</span>,</span>
+<span id="cb10-13"><a href=""></a>                           max_iter<span class="op">=</span><span class="dv">1000</span>, random_state<span class="op">=</span>SEED)</span>
+<span id="cb10-14"><a href=""></a>    m.fit(X_tr_b, y_tr_b)</span>
+<span id="cb10-15"><a href=""></a>    r <span class="op">=</span> recall_score(y_val_b, m.predict(X_val_b))</span>
+<span id="cb10-16"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f" | recall=</span><span class="sc">{</span>r<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb10-17"><a href=""></a></span>
+<span id="cb10-18"><a href=""></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">=== Split CON estratificación (con blocking) ==="</span>)</span>
+<span id="cb10-19"><a href=""></a><span class="cf">for</span> trial <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>):</span>
+<span id="cb10-20"><a href=""></a>    X_tr_b, X_val_b, y_tr_b, y_val_b <span class="op">=</span> train_test_split(</span>
+<span id="cb10-21"><a href=""></a>        X, y, test_size<span class="op">=</span><span class="fl">0.20</span>,</span>
+<span id="cb10-22"><a href=""></a>        stratify<span class="op">=</span>y,                <span class="co"># blocking por clase</span></span>
+<span id="cb10-23"><a href=""></a>        random_state<span class="op">=</span>trial <span class="op">*</span> <span class="dv">7</span></span>
+<span id="cb10-24"><a href=""></a>    )</span>
+<span id="cb10-25"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f"  Trial </span><span class="sc">{</span>trial<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss"> | pos_val=</span><span class="sc">{</span>y_val_b<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">"</span>, end<span class="op">=</span><span class="st">""</span>)</span>
+<span id="cb10-26"><a href=""></a>    m <span class="op">=</span> LogisticRegression(C<span class="op">=</span><span class="fl">1.0</span>, class_weight<span class="op">=</span><span class="st">"balanced"</span>,</span>
+<span id="cb10-27"><a href=""></a>                           max_iter<span class="op">=</span><span class="dv">1000</span>, random_state<span class="op">=</span>SEED)</span>
+<span id="cb10-28"><a href=""></a>    m.fit(X_tr_b, y_tr_b)</span>
+<span id="cb10-29"><a href=""></a>    r <span class="op">=</span> recall_score(y_val_b, m.predict(X_val_b))</span>
+<span id="cb10-30"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f" | recall=</span><span class="sc">{</span>r<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="blocking-resultado" class="slide level2">
+<h2>Blocking — resultado</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="f69bcb02" class="cell" data-execution_count="5">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-6-output-1.png" width="531" height="377"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Observación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li><p>Sin blocking →<br>
+proporción varía (0.71–0.77)<br>
+recall cambia (0.94–0.97)</p></li>
+<li><p>Con blocking →<br>
+todo constante</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Variación ≠ modelo<br>
+</li>
+<li>Variación = <strong>split</strong></li>
+</ul>
+<p>→ ruido espurio eliminado</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>Blocking = comparar en<br>
+<strong>las mismas condiciones</strong></p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="validación-cruzada-k-fold-código" class="slide level2">
+<h2>Validación cruzada k-fold — código</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href=""></a><span class="co"># Celda 9: k-fold cross-validation estratificada</span></span>
+<span id="cb11-2"><a href=""></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> StratifiedKFold, cross_val_score</span>
+<span id="cb11-3"><a href=""></a></span>
+<span id="cb11-4"><a href=""></a>model_cv <span class="op">=</span> LogisticRegression(</span>
+<span id="cb11-5"><a href=""></a>    C<span class="op">=</span><span class="fl">1.0</span>, class_weight<span class="op">=</span><span class="st">"balanced"</span>,</span>
+<span id="cb11-6"><a href=""></a>    max_iter<span class="op">=</span><span class="dv">1000</span>, random_state<span class="op">=</span>SEED</span>
+<span id="cb11-7"><a href=""></a>)</span>
+<span id="cb11-8"><a href=""></a>skf <span class="op">=</span> StratifiedKFold(n_splits<span class="op">=</span><span class="dv">5</span>, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span>SEED)</span>
+<span id="cb11-9"><a href=""></a></span>
+<span id="cb11-10"><a href=""></a><span class="co"># Recall por fold</span></span>
+<span id="cb11-11"><a href=""></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> make_scorer</span>
+<span id="cb11-12"><a href=""></a>scorer <span class="op">=</span> make_scorer(recall_score)</span>
+<span id="cb11-13"><a href=""></a>fold_recalls <span class="op">=</span> cross_val_score(model_cv, X, y, cv<span class="op">=</span>skf, scoring<span class="op">=</span>scorer)</span>
+<span id="cb11-14"><a href=""></a></span>
+<span id="cb11-15"><a href=""></a><span class="bu">print</span>(<span class="st">"Recall por fold:"</span>)</span>
+<span id="cb11-16"><a href=""></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(fold_recalls, <span class="dv">1</span>):</span>
+<span id="cb11-17"><a href=""></a>    <span class="bu">print</span>(<span class="ss">f"  Fold </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>r<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb11-18"><a href=""></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Media  : </span><span class="sc">{</span>fold_recalls<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb11-19"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Std    : </span><span class="sc">{</span>fold_recalls<span class="sc">.</span>std()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb11-20"><a href=""></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">→ std &lt; 0.02: </span><span class="sc">{</span><span class="st">'✓ Estimador estable'</span> <span class="cf">if</span> fold_recalls<span class="sc">.</span>std() <span class="op">&lt;</span> <span class="fl">0.02</span> <span class="cf">else</span> <span class="st">'✗ Alta varianza — necesitas más datos'</span><span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="qué-es-k-fold" class="slide level2">
+<h2>¿Qué es k-fold?</h2>
+<p>Divide los datos en <em>k partes</em> y repite el experimento <em>k veces</em>, usando una parte distinta como validación. → cada dato se usa para entrenar y evaluar</p>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Problema sin k-fold</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Dependes de un solo split<br>
+</li>
+<li>Resultado puede variar por azar</li>
+</ul>
+<p>→ estimación inestable</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>k-fold no mejora el modelo</p>
+<p>→ mejora <strong>qué tan bien lo medimos</strong></p>
+<ul>
+<li>Menor varianza<br>
+</li>
+<li>Evaluación más robusta<br>
+</li>
+<li>Mejor comparación entre modelos</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<section id="k-fold-resultado" class="slide level2">
+<h2>k-fold — resultado</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<div class="code-fold">
+<div id="3c803a46" class="cell" data-execution_count="6">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-7-output-1.png" width="531" height="376"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Resultado</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Media → <strong>0.9541</strong><br>
+</li>
+<li>Std → <strong>0.0053</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Interpretación</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Variación pequeña entre folds<br>
+</li>
+<li>Estimador <strong>estable</strong></li>
+</ul>
+<p>→ modelo generaliza bien</p>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>¿Cuándo usar k-fold?</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Datos pequeños → ✓<br>
+</li>
+<li>Comparar modelos → ✓<br>
+</li>
+<li>Datos grandes → split basta</li>
+</ul>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="resumen-visual-del-bloque-código" class="slide level2">
+<h2>Resumen visual del bloque — código</h2>
+<div id="29ff4639" class="cell" data-execution_count="7">
+<div class="cell-output cell-output-display">
+<div>
+<figure>
+<p><img data-src="dia1_slides_files/figure-revealjs/cell-8-output-1.png" width="950" height="374"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="resumen-del-bloque-resultado" class="slide level2">
+<h2>Resumen del bloque — resultado</h2>
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Lo que demostró este bloque</strong></p>
+</div>
+<div class="callout-content">
+<p><strong>Variables:</strong> <code>class_weight</code> es la variable independiente dominante — cambia el recall en ~12 pp.&nbsp;<code>C</code> tiene efecto secundario.</p>
+<p><strong>DoE:</strong> el diseño factorial <span class="math inline">2 \times 3</span> reveló la interacción que OFAT habría perdido.</p>
+<p><strong>Confounding:</strong> sin semilla fija, la varianza espuria puede ser ±1.8 pp — mayor que el efecto de <code>C</code>.</p>
+<p><strong>Blocking:</strong> sin estratificación, la varianza del split puede ser ±3.3 pp — mayor que la diferencia entre modelos.</p>
+<p><strong>Mañana con ResNet-18:</strong> los mismos principios, el mismo código de aleatorización y blocking, pero con ~11M parámetros.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="slide level2">
+
+</section></section>
+<section>
+<section id="bloque-5" class="title-slide slide level1 section-divider center">
+<h1>Bloque 5</h1>
+
+</section>
+<section id="métricas-y-baselines" class="slide level2">
+<h2>Métricas y baselines</h2>
+<p><em><span class="citation" data-cites="murphy2012machine">Murphy (<a href="#/referencias" role="doc-biblioref" onclick="">2012</a>)</span> · <span class="citation" data-cites="bishop2006pattern">Bishop (<a href="#/referencias" role="doc-biblioref" onclick="">2006</a>)</span> · <span class="citation" data-cites="burkov2020machine">Burkov (<a href="#/referencias" role="doc-biblioref" onclick="">2020</a>)</span></em></p>
+</section>
+<section id="la-métrica-define-el-problema-i" class="slide level2">
+<h2>La métrica define el problema (I)</h2>
+<div class="columns">
+<div class="column" style="width:42%;">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Idea clave</strong></p>
+</div>
+<div class="callout-content">
+<p>El modelo aprende lo que le pides optimizar.<br>
+→ La métrica define el problema.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Accuracy es engañosa</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>PNEUMONIA ≈ 74%<br>
+</li>
+<li>Modelo trivial: siempre predice PNEUMONIA<br>
+→ Accuracy ≈ <strong>62.5%</strong> sin aprender nada</li>
+</ul>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:58%;">
+<div id="fa5d88fe" class="cell" data-execution_count="8">
+<div class="cell-output cell-output-display">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="87ccce30-55b2-49c0-b5a2-2c350077d61d" class="plotly-graph-div" style="height:320px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("87ccce30-55b2-49c0-b5a2-2c350077d61d")) {                    Plotly.newPlot(                        "87ccce30-55b2-49c0-b5a2-2c350077d61d",                        [{"marker":{"color":["#60a5fa","#f97316"]},"showlegend":false,"text":["26%","74%"],"textposition":"outside","width":0.5,"x":["NORMAL","PNEUMONIA"],"y":[26,74],"type":"bar","xaxis":"x","yaxis":"y"},{"colorscale":[[0,"#1e293b"],[1,"#f97316"]],"showscale":false,"text":[["TN = 0","FP = 26"],["FN = 0","TP = 74"]],"texttemplate":"%{text}","x":["Pred NORMAL","Pred PNEUMONIA"],"y":["Real NORMAL","Real PNEUMONIA"],"z":[[0,26],[0,74]],"zmax":74,"zmin":0,"type":"heatmap","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30}}},"xaxis":{"anchor":"y","domain":[0.0,0.41000000000000003]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"%"},"range":[0,95]},"xaxis2":{"anchor":"y2","domain":[0.5900000000000001,1.0]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Distribuci\u00f3n del dataset","x":0.20500000000000002,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Matriz de confusi\u00f3n (baseline)","x":0.795,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}],"margin":{"t":50,"b":10,"l":10,"r":10},"height":320,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)"},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('87ccce30-55b2-49c0-b5a2-2c350077d61d');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="la-métrica-define-el-problema-ii" class="slide level2">
+<h2>La métrica define el problema (II)</h2>
+<div class="columns">
+<div class="column" style="width:42%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Problema real</strong></p>
+</div>
+<div class="callout-content">
+<ul>
+<li>Recall = 100%<br>
+</li>
+<li>Precision = 62.5%<br>
+→ <strong>37.5% falsas alarmas clínicas</strong></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Insight</strong></p>
+</div>
+<div class="callout-content">
+<p>Alta accuracy ≠ modelo útil<br>
+→ depende del contexto</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:58%;">
+<div id="2a9234ed" class="cell" data-execution_count="9">
+<div class="cell-output cell-output-display">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="f61f7191-1b98-47f2-934d-6cccb680ca51" class="plotly-graph-div" style="height:320px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("f61f7191-1b98-47f2-934d-6cccb680ca51")) {                    Plotly.newPlot(                        "f61f7191-1b98-47f2-934d-6cccb680ca51",                        [{"marker":{"color":["#facc15","#22c55e","#ef4444","#818cf8"]},"showlegend":false,"text":["62.5%","100.0%","62.5%","76.9%"],"textposition":"outside","width":0.5,"x":["Accuracy","Recall","Precision","F1"],"y":[62.5,100.0,62.5,76.9],"type":"bar","xaxis":"x","yaxis":"y"},{"fill":"toself","fillcolor":"rgba(239,68,68,0.08)","line":{"color":"rgba(0,0,0,0)"},"showlegend":false,"x":[0,0,1,1],"y":[0.8,1.0,1.0,0.8],"type":"scatter","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#f97316","size":14,"symbol":"star"},"mode":"markers+text","showlegend":false,"text":["Baseline"],"textposition":"bottom center","x":[1.0],"y":[0.625],"type":"scatter","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#22c55e","size":10,"symbol":"circle"},"mode":"markers","showlegend":false,"x":[0.85,0.95],"y":[0.85,0.95],"type":"scatter","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30}}},"xaxis":{"anchor":"y","domain":[0.0,0.41000000000000003]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"%"},"range":[0,118]},"xaxis2":{"anchor":"y2","domain":[0.5900000000000001,1.0],"title":{"text":"Recall"},"range":[0,1.1]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"title":{"text":"Precision"},"range":[0,1.1]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"M\u00e9tricas comparadas","x":0.20500000000000002,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Precision vs Recall","x":0.795,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"arrowcolor":"#94a3b8","arrowhead":2,"arrowwidth":1.5,"ax":0.78,"axref":"x2","ay":0.82,"ayref":"y2","showarrow":true,"text":"Objetivo","x":1.0,"xref":"x2","y":0.625,"yref":"y2"}],"shapes":[{"line":{"color":"gray","dash":"dot","width":1},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":100,"y1":100,"yref":"y"}],"margin":{"t":50,"b":10,"l":10,"r":10},"height":320,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)"},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('f61f7191-1b98-47f2-934d-6cccb680ca51');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="baselines-el-principio-de-parsimonia" class="slide level2">
+<h2>Baselines: el principio de parsimonia</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<p><span class="citation" data-cites="burkov2020machine">Burkov (<a href="#/referencias" role="doc-biblioref" onclick="">2020</a>)</span>:</p>
+<blockquote>
+<p><em>“Si no superas un baseline simple, tu modelo no sirve.”</em></p>
+</blockquote>
+<p><span class="citation" data-cites="hastie2009elements">Hastie, Tibshirani, y Friedman (<a href="#/referencias" role="doc-biblioref" onclick="">2009</a>)</span> — bias-variance tradeoff: si el modelo simple ya alcanza el nivel de error aceptable, aumentar complejidad <strong>solo introduce varianza</strong>.</p>
+</div><div class="column" style="width:45%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Pirámide de complejidad creciente</strong></p>
+</div>
+<div class="callout-content">
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>Nivel</th>
+<th>Modelo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>0</strong></td>
+<td>Clasificador de mayoría</td>
+</tr>
+<tr class="even">
+<td><strong>1</strong></td>
+<td>Regresión logística sobre píxeles</td>
+</tr>
+<tr class="odd">
+<td><strong>2</strong></td>
+<td>CNN de 3 capas desde cero</td>
+</tr>
+<tr class="even">
+<td><strong>3</strong></td>
+<td><strong>ResNet-18 fine-tuning</strong> ← H₁</td>
+</tr>
+</tbody>
+</table>
+<p>El nivel <span class="math inline">n</span> solo tiene valor si supera al <span class="math inline">n-1</span>.</p>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section class="slide level2">
+
+</section></section>
+<section>
+<section id="bloque-6" class="title-slide slide level1 section-divider center">
+<h1>Bloque 6</h1>
+
+</section>
+<section id="arquitectura-y-estructura-del-proyecto" class="slide level2">
+<h2>Arquitectura y estructura del proyecto</h2>
+<p><em><span class="citation" data-cites="he2016deep">He et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2016</a>)</span> · <span class="citation" data-cites="huyen2022designing">Huyen (<a href="#/referencias" role="doc-biblioref" onclick="">2022</a>)</span> · <span class="citation" data-cites="burkov2020machine">Burkov (<a href="#/referencias" role="doc-biblioref" onclick="">2020</a>)</span> · <span class="citation" data-cites="wilson2017good">Wilson et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2017</a>)</span></em></p>
+</section>
+<section id="match-tarea-arquitectura" class="slide level2">
+<h2>Match tarea → arquitectura</h2>
+<div class="cell" data-reveal="true" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A(["Clasificación\nde imagen médica"])
+
+    subgraph top ["Volumen de datos"]
+        direction LR
+        B1[" &amp;lt; 10 000\nTransfer learning"]
+        B2["&amp;gt; 100 000\nDesde cero"]
+    end
+
+    subgraph bottom ["Arquitectura recomendada"]
+        direction LR
+        C1[" Interpretabilidad\nResNet-18 · DenseNet-121"]
+        C2[" Velocidad\nEfficientNet-B3 · ViT-B/16"]
+    end
+
+    A --&gt; top
+    B1 --&gt;|"Sí"| C1
+    B1 --&gt;|"No"| C2
+    B2 --&gt; C2
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<div class="columns">
+<div class="column" style="width:33%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>ResNet-18</strong></p>
+</div>
+<div class="callout-content">
+<p><em><span class="citation" data-cites="he2016deep">He et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2016</a>)</span></em> 11M params · &lt; 10 min en Colab T4 · Compatible con Grad-CAM</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:33%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Transfer learning</strong></p>
+</div>
+<div class="callout-content">
+<p>~5 800 imágenes · Pesos ImageNet disponibles · Generaliza con datos escasos</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:34%;">
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Variable del experimento</strong></p>
+</div>
+<div class="callout-content">
+<p><code>freeze_backbone</code> = True (baseline) vs.&nbsp;False (fine-tuning completo)</p>
+</div>
+</div>
+</div>
+</div></div>
+</section></section>
+<section>
+<section id="ejercicio-de-cierre" class="title-slide slide level1 section-divider center">
+<h1>Ejercicio de cierre</h1>
+
+</section>
+<section id="diseña-tu-experimento" class="slide level2">
+<h2>Diseña tu experimento</h2>
+<p>Quieres saber si <strong>normalizar los datos</strong> mejora el desempeño de un modelo.</p>
+</section>
+<section class="slide level2">
+
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Componente</th>
+<th>Tu respuesta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Pregunta científica</strong></td>
+<td>¿Normalizar mejora el modelo?</td>
+</tr>
+<tr class="even">
+<td><strong>Hipótesis <span class="math inline">H_0</span></strong></td>
+<td>No hay diferencia</td>
+</tr>
+<tr class="odd">
+<td><strong>Hipótesis <span class="math inline">H_1</span></strong></td>
+<td>Sí mejora</td>
+</tr>
+<tr class="even">
+<td><strong>Variable independiente</strong></td>
+<td>Normalización (sí / no)</td>
+</tr>
+<tr class="odd">
+<td><strong>Variable dependiente</strong></td>
+<td>Recall (o accuracy)</td>
+</tr>
+<tr class="even">
+<td><strong>Variables controladas</strong></td>
+<td>Mismo modelo, mismos datos, misma semilla</td>
+</tr>
+<tr class="odd">
+<td><strong>Métrica con umbral</strong></td>
+<td>Ej: recall ≥ 0.90</td>
+</tr>
+<tr class="even">
+<td><strong>Baseline</strong></td>
+<td>Modelo sin normalizar</td>
+</tr>
+<tr class="odd">
+<td><strong>Refutación de <span class="math inline">H_1</span></strong></td>
+<td>No mejora o empeora</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section class="slide level2">
+
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Discusión</strong></p>
+</div>
+<div class="callout-content">
+<ol type="1">
+<li>¿Es justo usar el mismo test set?<br>
+</li>
+<li>¿Qué debe mantenerse fijo?<br>
+</li>
+<li>¿Qué pasaría si cambias la semilla?</li>
+</ol>
+</div>
+</div>
+</div>
+</section>
+<section id="mensaje-central" class="slide level2">
+<h2>Mensaje central</h2>
+<p><span class="math display">\boxed{\text{La arquitectura es intercambiable. La pregunta científica no.}}</span></p>
+<div class="columns">
+<div class="column" style="width:33%;">
+<div class="callout callout-important callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Importante</strong></p>
+</div>
+<div class="callout-content">
+<p>Una pregunta mal formulada produce experimentos que <strong>no pueden ser refutados</strong>.</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:33%;">
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Advertencia</strong></p>
+</div>
+<div class="callout-content">
+<p>Un experimento sin refutación posible <strong>no produce conocimiento</strong>.</p>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:34%;">
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Tip</strong></p>
+</div>
+<div class="callout-content">
+<p>Un modelo sin conocimiento válido <strong>no debe desplegarse</strong>. — <span class="citation" data-cites="sculley2015hidden">Sculley et&nbsp;al. (<a href="#/referencias" role="doc-biblioref" onclick="">2015</a>)</span></p>
+</div>
+</div>
+</div>
+</div></div>
+<p><span class="citation" data-cites="popper1959logic">Popper (<a href="#/referencias" role="doc-biblioref" onclick="">1959</a>)</span>: el progreso científico avanza por refutaciones. Diseña activamente <strong>contra</strong> tu propia hipótesis.</p>
+</section>
+<section id="checklist-del-día-1" class="slide level2">
+<h2>Checklist del Día 1</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<ul class="task-list">
+<li><label><input type="checkbox">Pregunta científica formulada con <span class="math inline">X</span>, <span class="math inline">Y</span>, <span class="math inline">Z</span></label></li>
+<li><label><input type="checkbox">Hipótesis <span class="math inline">H_0</span> / <span class="math inline">H_1</span> con criterio cuantitativo</label></li>
+<li><label><input type="checkbox">Tabla de variables completa</label></li>
+<li><label><input type="checkbox"><code>protocol.yaml</code> con semilla, split, hiperparámetros</label></li>
+<li><label><input type="checkbox">Baselines niveles 0–2 identificados</label></li>
+</ul>
+</div><div class="column" style="width:50%;">
+<ul class="task-list">
+<li><label><input type="checkbox">Arquitectura seleccionada con justificación</label></li>
+<li><label><input type="checkbox">Estructura de directorios en Git</label></li>
+<li><label><input type="checkbox"><code>set_seed(42)</code> en todos los módulos</label></li>
+<li><label><input type="checkbox"><code>environment.yml</code> generado</label></li>
+<li><label><input type="checkbox">Métrica primaria con umbral clínico definido</label></li>
+</ul>
+</div></div>
+</section>
+<section id="referencias" class="slide level2 smaller scrollable">
+<h2>Referencias</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-bishop2006pattern" class="csl-entry" role="listitem">
+Bishop, Christopher M. 2006. <em>Pattern Recognition and Machine Learning</em>. Springer.
+</div>
+<div id="ref-burkov2020machine" class="csl-entry" role="listitem">
+Burkov, Andriy. 2020. <em>Machine Learning Engineering</em>. True Positive Inc. <a href="http://www.mlebook.com">http://www.mlebook.com</a>.
+</div>
+<div id="ref-hastie2009elements" class="csl-entry" role="listitem">
+Hastie, Trevor, Robert Tibshirani, y Jerome Friedman. 2009. <em>The Elements of Statistical Learning: Data Mining, Inference, and Prediction</em>. 2.ª ed. Springer. <a href="https://hastie.su.domains/ElemStatLearn/">https://hastie.su.domains/ElemStatLearn/</a>.
+</div>
+<div id="ref-he2016deep" class="csl-entry" role="listitem">
+He, Kaiming, Xiangyu Zhang, Shaoqing Ren, y Jian Sun. 2016. <span>«Deep Residual Learning for Image Recognition»</span>. En <em>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)</em>, 770-78. <a href="https://doi.org/10.1109/CVPR.2016.90">https://doi.org/10.1109/CVPR.2016.90</a>.
+</div>
+<div id="ref-huyen2022designing" class="csl-entry" role="listitem">
+Huyen, Chip. 2022. <em>Designing Machine Learning Systems</em>. O’Reilly Media.
+</div>
+<div id="ref-kermany2018identifying" class="csl-entry" role="listitem">
+Kermany, Daniel S., Michael Goldbaum, Wenjia Cai, et&nbsp;al. 2018. <span>«Identifying Medical Diagnoses and Treatable Diseases by Image-Based Deep Learning»</span>. <em>Cell</em> 172 (5): 1122-31. <a href="https://doi.org/10.1016/j.cell.2018.02.010">https://doi.org/10.1016/j.cell.2018.02.010</a>.
+</div>
+<div id="ref-montgomery2017design" class="csl-entry" role="listitem">
+Montgomery, Douglas C. 2017. <em>Design and Analysis of Experiments</em>. 9.ª ed. Wiley.
+</div>
+<div id="ref-murphy2012machine" class="csl-entry" role="listitem">
+Murphy, Kevin P. 2012. <em>Machine Learning: A Probabilistic Perspective</em>. MIT Press.
+</div>
+<div id="ref-pineau2021reproducibility" class="csl-entry" role="listitem">
+Pineau, Joelle, Philippe Vincent-Lamarre, Koustuv Sinha, et&nbsp;al. 2021. <span>«Improving Reproducibility in Machine Learning Research»</span>. NeurIPS Reproducibility Program. <a href="https://www.cs.mcgill.ca/~jpineau/ReproducibilityChecklist.pdf">https://www.cs.mcgill.ca/~jpineau/ReproducibilityChecklist.pdf</a>.
+</div>
+<div id="ref-popper1959logic" class="csl-entry" role="listitem">
+Popper, Karl R. 1959. <em>The Logic of Scientific Discovery</em>. Hutchinson.
+</div>
+<div id="ref-sculley2015hidden" class="csl-entry" role="listitem">
+Sculley, D., Gary Holt, Daniel Golovin, et&nbsp;al. 2015. <span>«Hidden Technical Debt in Machine Learning Systems»</span>. En <em>Advances in Neural Information Processing Systems (NeurIPS)</em>. Vol. 28.
+</div>
+<div id="ref-spiegelhalter2019art" class="csl-entry" role="listitem">
+Spiegelhalter, David. 2019. <em>The Art of Statistics: How to Learn from Data</em>. Basic Books.
+</div>
+<div id="ref-wasserman2004all" class="csl-entry" role="listitem">
+Wasserman, Larry. 2004. <em>All of Statistics: A Concise Course in Statistical Inference</em>. Springer.
+</div>
+<div id="ref-wilson2017good" class="csl-entry" role="listitem">
+Wilson, Greg, Jennifer Bryan, Karen Cranston, et&nbsp;al. 2017. <span>«Good Enough Practices in Scientific Computing»</span>. <em>PLOS Computational Biology</em> 13 (6). <a href="https://doi.org/10.1371/journal.pcbi.1005310">https://doi.org/10.1371/journal.pcbi.1005310</a>.
+</div>
+</div>
+
+</section></section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<p><img src="Logo_FC_Color.png" class="slide-logo"></p>
+<div class="footer footer-default">
+<p>Sesión 1 · Workshop ML 2026</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="dia1_slides_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="dia1_slides_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="dia1_slides_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="dia1_slides_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': false,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease-in-out",
+'autoAnimateDuration': 0.6,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'fade',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'fast',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1050,
+
+        height: 700,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 8.0e-2,
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copiado");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copiado");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>

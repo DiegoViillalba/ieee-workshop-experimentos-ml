@@ -1,0 +1,41 @@
+---
+title: "Introducción"
+author: "Diego Villaba"
+image: portada.png
+---
+
+
+## Contexto y propósito
+
+El presente workshop tiene como objetivo guiar a los participantes a lo largo del ciclo completo de desarrollo de un proyecto de Machine Learning, abarcando desde la formulación rigurosa de una pregunta de investigación hasta la comunicación estructurada de resultados.
+
+El enfoque del curso enfatiza la dimensión experimental del aprendizaje automático, integrando fundamentos metodológicos, infraestructura de entrenamiento, principios de reproducibilidad y herramientas modernas de documentación científica.
+
+## Enfoque metodológico
+
+El programa está diseñado bajo una perspectiva progresiva, en la que cada sesión introduce una capa adicional de complejidad sobre un mismo experimento base. Este enfoque permite a los participantes:
+
+- Comprender el proceso completo como un sistema coherente
+- Evitar la fragmentación típica del aprendizaje basado en técnicas aisladas
+- Desarrollar criterio experimental en contextos reales
+
+A lo largo del workshop se prioriza la toma de decisiones informadas sobre la mera implementación técnica.
+
+## Estructura del workshop
+
+El taller se desarrolla en cuatro sesiones presenciales de dos horas cada una, organizadas bajo el siguiente esquema:
+
+- Exposición conceptual guiada
+- Práctica estructurada sobre un experimento común
+- Discusión crítica de resultados y decisiones
+
+Cada sesión se construye sobre la anterior, permitiendo que los participantes evolucionen desde una idea inicial hasta un experimento completamente reproducible y comunicable.
+
+## Resultado esperado
+
+Al finalizar el workshop, los participantes habrán desarrollado un experimento de Machine Learning completo, caracterizado por:
+
+- Una pregunta de investigación claramente definida
+- Un pipeline de entrenamiento reproducible
+- Un sistema de evaluación fundamentado en métricas relevantes
+- Documentación estructurada lista para comunicación académica o técnica

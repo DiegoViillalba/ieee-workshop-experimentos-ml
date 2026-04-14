@@ -1,0 +1,17 @@
+{
+  "index.qmd": {
+    "index.html": "6a0d4fe5"
+  },
+  "notes/dia1_disenio_experimento.qmd": {
+    "dia1_disenio_experimento.html": "fdb80dd2"
+  },
+  "notes/dia2_infraestructura_entrenamiento.qmd": {
+    "dia2_infraestructura_entrenamiento.html": "f48ff665"
+  },
+  "notes/dia3_reproducibilidad_evaluacion.qmd": {
+    "dia3_reproducibilidad_evaluacion.html": "9a05d6de"
+  },
+  "notes/dia4_documentacion_comunicacion.qmd": {
+    "dia4_documentacion_comunicacion.html": "fc6c62a0"
+  }
+}
