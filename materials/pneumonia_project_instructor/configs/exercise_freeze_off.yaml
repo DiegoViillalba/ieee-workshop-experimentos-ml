@@ -1,0 +1,46 @@
+# configs/exercise_freeze_off.yaml
+# Ejercicio: descongelar el backbone para fine-tuning completo.
+#
+# Variable independiente: freeze_backbone = false  (vs. true en baseline)
+# Hipótesis: el fine-tuning completo mejora el recall ≥ 2 pp respecto al baseline.
+#
+# ADVERTENCIA: este experimento entrena ~11M params en lugar de ~1K.
+# Tiempo estimado: 3–4× más lento que el baseline en la misma GPU.
+# En Colab T4 con batch=32: ~3 min por época.
+#
+# Ejecutar con:
+#   uv run python scripts/train.py --config configs/exercise_freeze_off.yaml
+
+seed: 42
+
+model:
+  architecture:    "resnet18"
+  pretrained:      true
+  freeze_backbone: false       # ← CAMBIO respecto al baseline (true → false)
+  dropout:         0.4
+  num_classes:     2
+
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.00001       # lr más bajo para fine-tuning completo
+  weight_decay:  0.0001
+  patience:      3
+  checkpoint_dir: "outputs/checkpoints"
+
+loss:
+  type: "cross_entropy_weighted"
+  class_weights:
+    normal:    1.0
+    pneumonia: 2.0
+
+metrics:
+  primary:   "recall_pneumonia"
+  threshold: 0.5
+  target:    0.90
+
+wandb:
+  project: "pneumonia-classifier"
+  entity:  null
+  tags:    ["exercise", "resnet18", "freeze-false", "fine-tuning-completo"]
+  log_freq: 10

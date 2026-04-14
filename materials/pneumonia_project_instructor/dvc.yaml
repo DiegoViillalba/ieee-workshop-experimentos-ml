@@ -1,0 +1,90 @@
+# dvc.yaml
+# Pipeline reproducible del experimento — Día 2 Workshop ML
+#
+# Ejecutar el pipeline completo:
+#   dvc repro
+#
+# Ver el grafo de dependencias:
+#   dvc dag
+#
+# Ver diferencias entre experimentos:
+#   dvc params diff
+#   dvc metrics diff
+#
+# TODO: entender las dependencias del pipeline.
+#       Si modificas src/data/dataset.py, DVC sabe que prepare_data
+#       debe re-ejecutarse, y en cascada train y evaluate también.
+#       ¿Cuál es la ventaja de esto sobre ejecutar los scripts manualmente?
+#
+# REPLACE: modifica las etapas para agregar nuevos pasos al pipeline,
+#          por ejemplo un paso de preprocesamiento o análisis de errores.
+
+stages:
+
+  # ── Etapa 1: preparar datos ────────────────────────────────────────────────
+  prepare_data:
+    cmd: >
+      python -c "
+      from src.data.dataset import dataset_summary;
+      dataset_summary('data/raw/chest_xray')
+      "
+    deps:
+      - src/data/dataset.py
+      - data/raw/chest_xray
+    outs:
+      - data/processed
+    # TODO: entender dependencias del pipeline.
+    #       Esta etapa depende del código (src/data/dataset.py) y de los datos crudos.
+    #       Si alguno cambia, DVC marcará esta etapa como "changed" y la re-ejecutará.
+
+  # ── Etapa 2: entrenamiento ─────────────────────────────────────────────────
+  train:
+    cmd: python scripts/train.py --config configs/baseline.yaml --no-wandb
+    deps:
+      - scripts/train.py
+      - src/training/trainer.py
+      - src/training/config.py
+      - src/models/resnet.py
+      - src/data/dataset.py
+      - configs/baseline.yaml
+      - data/processed
+    outs:
+      - outputs/checkpoints/best_model.pt
+    metrics:
+      - outputs/metrics/train_history.json:
+          cache: false
+    params:
+      - configs/baseline.yaml:
+          - seed
+          - training.learning_rate
+          - training.batch_size
+          - training.epochs
+          - model.freeze_backbone
+          - loss.class_weights.pneumonia
+    # REPLACE: modifica las dependencias si agregas nuevos módulos al entrenamiento.
+
+  # ── Etapa 3: evaluación ────────────────────────────────────────────────────
+  evaluate:
+    cmd: >
+      python scripts/evaluate.py
+      --config configs/baseline.yaml
+      --checkpoint outputs/checkpoints/best_model.pt
+      --no-wandb
+    deps:
+      - scripts/evaluate.py
+      - src/evaluation/metrics.py
+      - src/models/resnet.py
+      - configs/baseline.yaml
+      - outputs/checkpoints/best_model.pt
+      - data/raw/chest_xray/test
+    outs:
+      - outputs/metrics/confusion_matrix.png:
+          cache: false
+      - outputs/metrics/roc_pr_curves.png:
+          cache: false
+    metrics:
+      - outputs/metrics/test_metrics.json:
+          cache: false
+    # TODO: entender dependencias del pipeline.
+    #       Esta etapa depende del checkpoint (output de train).
+    #       DVC garantiza que evaluate siempre usa el checkpoint del mismo run de train.

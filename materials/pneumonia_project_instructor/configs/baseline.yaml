@@ -1,0 +1,44 @@
+# configs/baseline.yaml
+# Experimento baseline — ResNet-18 con w_pos=2.0
+#
+# Este archivo hereda todos los valores de default.yaml y solo sobreescribe
+# los parámetros específicos del experimento baseline.
+#
+# Uso: python scripts/train.py --config configs/baseline.yaml
+#
+# REPLACE: copia este archivo como configs/experiment_01.yaml,
+#          modifica un parámetro y ejecuta para comparar en W&B.
+
+seed: 42
+
+model:
+  architecture:    "resnet18"
+  pretrained:      true
+  freeze_backbone: true
+  dropout:         0.4
+  num_classes:     2
+
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.0001
+  weight_decay:  0.0001
+  patience:      3
+  checkpoint_dir: "outputs/checkpoints"
+
+loss:
+  type: "cross_entropy_weighted"
+  class_weights:
+    normal:    1.0
+    pneumonia: 2.0
+
+metrics:
+  primary:   "recall_pneumonia"
+  threshold: 0.5
+  target:    0.90
+
+wandb:
+  project: "pneumonia-classifier"
+  entity:  null
+  tags:    ["baseline", "resnet18", "freeze-backbone", "w_pos-2.0"]
+  log_freq: 10

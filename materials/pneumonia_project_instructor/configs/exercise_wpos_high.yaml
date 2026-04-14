@@ -1,0 +1,47 @@
+# configs/exercise_wpos_high.yaml
+# Ejercicio: aumentar el peso de la clase positiva para maximizar recall.
+#
+# Variable independiente: class_weights.pneumonia = 3.0  (vs. 2.0 en baseline)
+# Hipótesis: w_pos más alto mejora el recall pero puede reducir la precision.
+#
+# Ejecutar con:
+#   uv run python scripts/train.py --config configs/exercise_wpos_high.yaml
+#
+# Observar en W&B:
+#   - ¿Sube el val/recall respecto al baseline?
+#   - ¿Baja la precision de PNEUMONIA?
+#   - ¿Se mantiene el AUC-ROC o baja?
+
+seed: 42
+
+model:
+  architecture:    "resnet18"
+  pretrained:      true
+  freeze_backbone: true
+  dropout:         0.4
+  num_classes:     2
+
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.0001
+  weight_decay:  0.0001
+  patience:      3
+  checkpoint_dir: "outputs/checkpoints"
+
+loss:
+  type: "cross_entropy_weighted"
+  class_weights:
+    normal:    1.0
+    pneumonia: 3.0             # ← CAMBIO respecto al baseline (2.0 → 3.0)
+
+metrics:
+  primary:   "recall_pneumonia"
+  threshold: 0.5
+  target:    0.90
+
+wandb:
+  project: "pneumonia-classifier"
+  entity:  null
+  tags:    ["exercise", "resnet18", "wpos-high", "wpos-3.0"]
+  log_freq: 10

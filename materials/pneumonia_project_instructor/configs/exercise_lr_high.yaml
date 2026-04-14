@@ -1,0 +1,45 @@
+# configs/exercise_lr_high.yaml
+# Ejercicio: aprendizaje más agresivo con learning rate 10× mayor.
+#
+# Variable independiente: learning_rate = 0.001  (vs. 0.0001 en baseline)
+# Hipótesis: lr alto converge más rápido pero puede oscilar o divergir.
+#
+# Ejecutar con:
+#   uv run python scripts/train.py --config configs/exercise_lr_high.yaml
+#
+# Comparar en W&B: ¿las curvas de loss son más ruidosas?
+#                  ¿El val/recall sube antes pero se estabiliza más bajo?
+
+seed: 42
+
+model:
+  architecture:    "resnet18"
+  pretrained:      true
+  freeze_backbone: true
+  dropout:         0.4
+  num_classes:     2
+
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.001         # ← CAMBIO respecto al baseline (0.0001 → 0.001)
+  weight_decay:  0.0001
+  patience:      3
+  checkpoint_dir: "outputs/checkpoints"
+
+loss:
+  type: "cross_entropy_weighted"
+  class_weights:
+    normal:    1.0
+    pneumonia: 2.0
+
+metrics:
+  primary:   "recall_pneumonia"
+  threshold: 0.5
+  target:    0.90
+
+wandb:
+  project: "pneumonia-classifier"
+  entity:  null
+  tags:    ["exercise", "resnet18", "lr-high", "lr-0.001"]
+  log_freq: 10

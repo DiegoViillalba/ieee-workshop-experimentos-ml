@@ -1,0 +1,76 @@
+# configs/default.yaml
+# Configuración base del experimento — Día 2 Workshop ML
+#
+# PRINCIPIO: todo hiperparámetro vive aquí, nunca hardcodeado en el código.
+# El código lee SIEMPRE desde este archivo vía src/training/config.py.
+#
+# REPLACE: modificar hiperparámetros para generar nuevos runs en W&B.
+#          Cada cambio aquí genera un experimento distinto y rastreable.
+
+# ── Reproducibilidad ────────────────────────────────────────────────────────
+seed: 42
+# TODO: verificar cómo afecta el seed a los resultados.
+#       Cambia a 0, 123 o 999 y ejecuta de nuevo. ¿Cambia el recall final?
+
+# ── Datos ───────────────────────────────────────────────────────────────────
+data:
+  raw_dir:       "data/raw/chest_xray"
+  processed_dir: "data/processed"
+  image_size:    224
+  val_split:     0.15   # fracción de train usada como validación
+  test_split:    0.0    # el test set ya viene separado en el dataset original
+
+# ── Modelo ──────────────────────────────────────────────────────────────────
+model:
+  architecture:    "resnet18"
+  pretrained:      true
+  freeze_backbone: true
+  dropout:         0.4
+  num_classes:     2
+# TODO: entender qué capas se están fine-tuneando cuando freeze_backbone=true.
+#       ¿Cuántos parámetros entrenables hay? Compruébalo con src/models/resnet.py
+# REPLACE: cambia freeze_backbone a false para fine-tuning completo.
+#          Observa si el recall mejora y cuánto más tarda el entrenamiento.
+
+# ── Entrenamiento ────────────────────────────────────────────────────────────
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.0001
+  weight_decay:  0.0001
+  patience:      3          # early stopping: épocas sin mejora en val/recall
+  checkpoint_dir: "outputs/checkpoints"
+# TODO: ¿qué impacto tiene batch_size en el entrenamiento?
+#       Prueba 16 y 64. ¿Cambia la velocidad? ¿Cambia la métrica final?
+# REPLACE: modifica learning_rate (prueba 0.001 y 0.00001) y observa
+#          cómo cambian las curvas de loss en W&B.
+
+# ── Función de pérdida ───────────────────────────────────────────────────────
+loss:
+  type: "cross_entropy_weighted"
+  class_weights:
+    normal:    1.0
+    pneumonia: 2.0
+# TODO: por qué usamos pesos de clase.
+#       ¿Qué pasaría si ambos pesos fueran 1.0? ¿Cambiaría el recall?
+# REPLACE: modifica pneumonia de 2.0 a 3.0 y observa el recall.
+#          ¿Hay un punto en que subir el peso empieza a dañar la precision?
+
+# ── Métricas ─────────────────────────────────────────────────────────────────
+metrics:
+  primary:   "recall_pneumonia"    # métrica que guía el early stopping
+  threshold: 0.5                   # umbral de decisión para clasificación binaria
+  target:    0.90                  # criterio de éxito clínico
+
+# ── W&B (Weights & Biases) ───────────────────────────────────────────────────
+wandb:
+  project:  "pneumonia-classifier"
+  entity:   null                   # null = cuenta personal
+  tags:     ["baseline", "resnet18", "day2-workshop"]
+  log_freq: 10                     # loggear cada N batches
+# TODO: comparar dos runs en el dashboard de W&B.
+#       Ejecuta con lr=0.0001 y luego con lr=0.001. ¿Cuál converge más rápido?
+
+# ── DVC ──────────────────────────────────────────────────────────────────────
+dvc:
+  remote: null    # null = solo local; configurar con: dvc remote add -d gdrive ...

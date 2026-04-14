@@ -1,0 +1,92 @@
+# pyproject.toml
+# Configuración central del proyecto: dependencias (uv) y formato (ruff).
+#
+# Con uv todo el ciclo de vida del entorno se gestiona desde aquí:
+#   uv venv              → crea .venv en el directorio del proyecto
+#   uv pip install -e .  → instala el proyecto en modo editable
+#   uv pip sync          → sincroniza exactamente las dependencias del lockfile
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name        = "pneumonia-classifier"
+version     = "0.1.0"
+description = "Clasificador de neumonía en rayos X — Workshop ML Día 2"
+requires-python = ">=3.10"
+
+dependencies = [
+    # ── Deep Learning ────────────────────────────────────────────────────────
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+
+    # ── Datos y métricas ─────────────────────────────────────────────────────
+    "numpy>=1.24.0",
+    "scikit-learn>=1.3.0",
+    "Pillow>=9.0.0",
+
+    # ── Configuración ────────────────────────────────────────────────────────
+    "PyYAML>=6.0",
+
+    # ── Visualización ────────────────────────────────────────────────────────
+    "matplotlib>=3.7.0",
+
+    # ── Logging de experimentos ──────────────────────────────────────────────
+    "wandb>=0.16.0",
+
+    # ── Pipeline reproducible ────────────────────────────────────────────────
+    "dvc>=3.0.0",
+]
+
+[project.optional-dependencies]
+# Instalar con: uv pip install -e ".[dev]"
+dev = [
+    "pytest>=7.4.0",
+    "ruff>=0.4.0",
+]
+
+# ── uv: herramienta de gestión de entornos y paquetes ────────────────────────
+# Instalación de uv: curl -LsSf https://astral.sh/uv/install.sh | sh
+# Documentación: https://docs.astral.sh/uv/
+
+# ── ruff: linter y formatter ──────────────────────────────────────────────────
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+# Reglas activas:
+#   E, W  → pycodestyle (errores y advertencias de estilo PEP 8)
+#   F     → pyflakes (variables no usadas, imports incorrectos)
+#   I     → isort (orden de imports)
+#   N     → pep8-naming (convenciones de nombres)
+#   UP    → pyupgrade (modernizar sintaxis Python)
+select = ["E", "W", "F", "I", "N", "UP"]
+
+# Ignorar reglas que no aplican al proyecto:
+#   E501 → line too long (los comentarios pedagógicos son intencionalmente largos)
+ignore = ["E501"]
+
+# Directorios excluidos del linting
+exclude = [
+    ".venv",
+    "__pycache__",
+    "outputs",
+    "data",
+]
+
+[tool.ruff.format]
+# Estilo de comillas en el código formateado
+quote-style    = "double"
+indent-style   = "space"
+line-ending    = "auto"
+
+[tool.ruff.lint.isort]
+# Orden de grupos de imports: stdlib → third-party → local
+known-first-party = ["src"]
+
+# ── pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+python_files = ["test_*.py"]
+addopts      = "-v --tb=short"

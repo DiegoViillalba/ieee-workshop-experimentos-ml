@@ -1,0 +1,912 @@
+---
+title: "Día 2 · De la pregunta al experimento"
+subtitle: "Cómo construir, entrenar y auditar un proyecto de ML reproducible"
+author: "Workshop · De la idea al experimento · Abril 2026"
+date: "14 de abril de 2026"
+lang: es
+format:
+  revealjs:
+    theme: default
+    css: custom.css
+    transition: fade
+    transition-speed: fast
+    slide-number: c/t
+    show-slide-number: all
+    controls: true
+    progress: true
+    history: true
+    center: false
+    width: 1280
+    height: 720
+    margin: 0.08
+    highlight-style: github
+    code-block-height: 340px
+    code-line-numbers: true
+    footer: "Sesión 2 · Workshop ML 2026 · Clasificador de neumonía · PyTorch + ResNet-18"
+    self-contained: true
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
+bibliography: references.bib
+---
+
+## Agenda {.agenda}
+
+::: columns
+::: {.column width="55%"}
+| Bloque | Tema |
+|---|---|
+| `0:00–0:15` | Recapitulación Día 1 + pregunta científica |
+| `0:15–0:35` | Dataset e infraestructura |
+| `0:35–1:00` | Modelo y función de pérdida |
+| `1:00–1:20` | Pipeline completo (DVC + W&B) |
+| `1:20–1:40` | Primer entrenamiento en vivo |
+| `1:40–2:00` | Métricas, resultados y cierre |
+:::
+::: {.column width="45%"}
+::: {.callout-note}
+## Objetivo del día
+
+Pasar de la pregunta científica del Día 1 a un **experimento ejecutable, reproducible y auditado**.
+
+Al finalizar tendrás:
+
+- Pipeline corriendo de extremo a extremo
+- Al menos 2 runs en W&B
+- `best_model.pt` guardado y versionado
+:::
+:::
+:::
+
+---
+
+# Bloque 1 {.section-divider}
+## Recapitulación y pregunta científica
+*Del Día 1 al código*
+
+---
+
+## Lo que construimos ayer
+
+::: columns
+::: {.column width="50%"}
+**Día 1 — definimos el experimento:**
+
+El experimento no es el modelo.
+
+$$\text{Experimento} = \text{H} + \text{D} + \text{M} + \text{P}$$
+
+Formulamos la pregunta, definimos hipótesis falsables, identificamos variables y elegimos métricas coherentes con el dominio clínico.
+:::
+::: {.column width="50%"}
+::: {.callout-important}
+## La pregunta científica
+
+*"¿Un modelo ResNet-18 con fine-tuning sobre ImageNet y pérdida ponderada ($w_{pos}=2.0$) alcanza **recall ≥ 0.90** para PNEUMONIA en el test set de @kermany2018identifying, con AUC-ROC mayor al del clasificador de mayoría?"*
+
+**H₀:** recall < 0.90
+
+**H₁:** recall ≥ 0.90 **y** AUC-ROC > 0.50
+:::
+:::
+:::
+
+---
+
+## De la pregunta al código
+
+Cada componente de la pregunta científica se traduce en una decisión de implementación:
+
+| Componente de la pregunta | Decisión de implementación |
+|---|---|
+| ResNet-18 con fine-tuning | `src/models/resnet.py` · `freeze_backbone: true` |
+| Pesos de ImageNet | `pretrained: true` en `configs/baseline.yaml` |
+| Pérdida ponderada $w_{pos}=2.0$ | `loss.class_weights.pneumonia: 2.0` en YAML |
+| Dataset @kermany2018identifying | `data/raw/chest_xray/` · versionado con DVC |
+| Recall ≥ 0.90 | `metrics.primary: recall_pneumonia` en YAML |
+| AUC-ROC > 0.50 | `metrics.target: 0.90` · verificado en `evaluate.py` |
+| Una sola evaluación en test | `test_used: false` hasta el reporte final |
+
+::: {.callout-tip}
+## TODO para el instructor
+
+Mostrar que `configs/baseline.yaml` es la traducción directa de la pregunta científica. Cada campo del YAML responde a una decisión tomada en el Día 1.
+:::
+
+---
+
+## Estructura del proyecto
+
+```
+pneumonia-classifier/
+├── configs/
+│   ├── default.yaml       ← hiperparámetros base
+│   └── baseline.yaml      ← experimento baseline
+├── src/
+│   ├── data/dataset.py    ← carga y transformaciones
+│   ├── models/resnet.py   ← arquitectura
+│   ├── training/
+│   │   ├── config.py      ← set_seed() + load_config()
+│   │   └── trainer.py     ← loop de entrenamiento
+│   └── evaluation/
+│       └── metrics.py     ← recall, AUC-ROC, figuras
+├── scripts/
+│   ├── train.py           ← punto de entrada del entrenamiento
+│   └── evaluate.py        ← evaluación en test set
+├── outputs/
+│   ├── checkpoints/       ← best_model.pt
+│   └── metrics/           ← JSON + figuras
+├── tests/                 ← pruebas unitarias
+├── dvc.yaml               ← pipeline reproducible
+└── README.md
+```
+
+::: {.callout-tip}
+## Principio: separación de responsabilidades
+
+Código ≠ Configuración ≠ Datos ≠ Resultados. Cada uno vive en su directorio y tiene su propio sistema de versionado.
+:::
+
+---
+
+# Bloque 2 {.section-divider}
+## Dataset, entorno e infraestructura
+*@kermany2018identifying · uv · ruff · DVC · reproducibilidad*
+
+---
+
+## El dataset: Chest X-Ray Images
+
+::: columns
+::: {.column width="55%"}
+@kermany2018identifying publicaron este dataset del Guangzhou Women and Children's Medical Center.
+
+| Split | NORMAL | PNEUMONIA | Total |
+|---|---|---|---|
+| **Train** | 1 341 | 3 875 | 5 216 |
+| **Val** | 8 | 8 | 16 |
+| **Test** | 234 | 390 | 624 |
+
+**Problema del val set:** solo 16 imágenes → estadísticamente insuficiente. Crearemos nuestra propia división estratificada.
+
+**Desbalance en train:** 74% PNEUMONIA. Esto justifica la pérdida ponderada.
+:::
+::: {.column width="45%"}
+::: {.callout-warning}
+## Por qué este dataset
+
+- Problema clínico real y relevante
+- Tamaño manejable para un workshop (~5 800 imgs)
+- Desbalance de clases: enseña por qué accuracy engaña
+- Permite demostrar transfer learning con ~11M parámetros
+
+Descarga: `kaggle datasets download paultimothymooney/chest-xray-pneumonia`
+:::
+:::
+:::
+
+---
+
+## Reproducibilidad: `set_seed()` y configuración YAML
+
+::: columns
+::: {.column width="50%"}
+```python
+# src/training/config.py
+def set_seed(seed: int = 42) -> None:
+    """
+    Fija todas las semillas.
+    # TODO: verificar cómo afecta el seed.
+    # Cambia seed en el YAML y re-ejecuta.
+    # ¿Cambia el recall final?
+    """
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark     = False
+```
+:::
+::: {.column width="50%"}
+```yaml
+# configs/baseline.yaml
+# REPLACE: modificar hiperparámetros
+# para generar nuevos runs en W&B.
+
+seed: 42
+
+model:
+  architecture:    "resnet18"
+  freeze_backbone: true
+  dropout:         0.4
+
+training:
+  epochs:        5
+  batch_size:    32
+  learning_rate: 0.0001
+
+loss:
+  class_weights:
+    normal:    1.0
+    pneumonia: 2.0
+```
+:::
+:::
+
+::: {.callout-important}
+## El código lee SIEMPRE desde el YAML — nunca valores hardcodeados
+
+Cualquier cambio de hiperparámetro queda registrado en Git y en W&B automáticamente.
+:::
+
+---
+
+## Versionado de datos con DVC
+
+```bash
+# Inicializar DVC en el repositorio
+dvc init
+git add .dvc .dvcignore
+git commit -m "feat: inicializar DVC"
+
+# Versionar el dataset (el archivo binario va a DVC, no a Git)
+dvc add data/raw/chest_xray
+git add data/raw/chest_xray.dvc .gitignore
+git commit -m "data: agregar dataset Kermany 2018 via DVC"
+
+# Ejecutar el pipeline completo
+dvc repro
+
+# Ver el grafo de dependencias
+dvc dag
+```
+
+::: {.callout-tip}
+## Por qué DVC y no solo Git
+
+Git versiona código. DVC versiona datos y pipelines. Juntos garantizan que cualquier commit de código tenga asociado exactamente el dataset y los parámetros con los que se generaron los resultados.
+:::
+
+---
+
+## Entorno reproducible con uv
+
+::: columns
+::: {.column width="55%"}
+Usamos **[uv](https://docs.astral.sh/uv/)** en lugar de conda para este proyecto.
+uv es un gestor de paquetes Python escrito en Rust: crea entornos `.venv` locales e instala dependencias 10–100× más rápido que pip o conda.
+
+```bash
+# Instalar uv (una sola vez por máquina)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Crear el entorno .venv en el directorio del proyecto
+uv venv --python 3.10
+source .venv/bin/activate
+
+# Instalar todas las dependencias del pyproject.toml
+uv pip install -e ".[dev]"
+
+# Verificar
+python -c "import torch; print(torch.__version__)"
+```
+
+::: {.callout-tip}
+## Ventaja clave: `uv run`
+
+```bash
+# Sin activar el entorno manualmente:
+uv run python scripts/train.py --config configs/baseline.yaml
+uv run pytest
+```
+:::
+:::
+::: {.column width="45%"}
+::: {.callout-important}
+## pyproject.toml — fuente única de verdad
+
+```toml
+[project]
+name = "pneumonia-classifier"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "wandb>=0.16.0",
+    "dvc>=3.0.0",
+    ...
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0", "ruff>=0.4.0"]
+```
+
+Un solo archivo reemplaza `requirements.txt` + `setup.py` + `setup.cfg`.
+:::
+:::
+:::
+
+---
+
+## uv vs. conda: cuándo usar cada uno
+
+| Criterio | uv + .venv | conda |
+|---|---|---|
+| **Velocidad** | 10–100× más rápido | Lento (solver SAT) |
+| **Tamaño en disco** | ~50 MB | 500 MB–2 GB |
+| **Reproducibilidad** | `uv.lock` con hashes exactos | `environment.yml` menos preciso |
+| **Binarios no-Python** | ✗ No gestiona CUDA, MKL | ✓ Gestiona binarios nativos |
+| **Integración PyPI** | ✓ Nativa y completa | Mezcla conda-forge + PyPI |
+| **CI/CD y Docker** | ✓ Ideal — sin overhead | Añade complejidad |
+| **torch + CUDA** | Wheel de PyPI; CUDA del sistema | Más sencillo con channel pytorch |
+
+::: {.callout-tip}
+## Regla práctica del workshop
+
+Usamos **uv** porque Colab ya provee CUDA y queremos reproducibilidad exacta.
+
+Usa **conda** cuando dependas de binarios nativos no-Python (CUDA toolkit, GDAL, libsndfile) o tu equipo ya tenga Anaconda.
+
+En producción y CI/CD: **uv siempre gana** en velocidad y tamaño de imagen Docker.
+:::
+
+---
+
+## Calidad de código con ruff
+
+::: columns
+::: {.column width="55%"}
+**[ruff](https://docs.astral.sh/ruff/)** es linter y formatter en un solo binario.
+Reemplaza `flake8 + isort + black` y es entre 10–100× más rápido.
+
+```bash
+# Verificar estilo (linting)
+ruff check src/ scripts/ tests/
+
+# Formatear automáticamente
+ruff format src/ scripts/ tests/
+
+# Corregir problemas automáticamente
+ruff check --fix src/ scripts/ tests/
+```
+
+Configurado en `pyproject.toml`:
+
+```toml
+[tool.ruff]
+line-length    = 99
+target-version = "py310"
+select  = ["E", "W", "F", "I", "N", "UP"]
+ignore  = ["E501"]
+```
+:::
+::: {.column width="45%"}
+::: {.callout-tip}
+## Reglas activas en este proyecto
+
+| Prefijo | Herramienta equivalente | Qué detecta |
+|---|---|---|
+| `E`, `W` | pycodestyle | Errores de estilo PEP 8 |
+| `F` | pyflakes | Variables sin usar, imports rotos |
+| `I` | isort | Orden de imports |
+| `N` | pep8-naming | Nombres de funciones/clases |
+| `UP` | pyupgrade | Sintaxis moderna de Python |
+:::
+
+::: {.callout-note}
+## Flujo de trabajo con ruff
+
+Antes de cada commit:
+
+```bash
+ruff format src/ scripts/
+ruff check --fix src/ scripts/
+git add -u
+git commit -m "style: ruff format"
+```
+:::
+:::
+:::
+
+---
+
+## Pipeline DVC: las tres etapas
+
+```{mermaid}
+flowchart LR
+    A["data/raw/\nchest_xray"] --> B["prepare_data\nsrc/data/dataset.py"]
+    C["configs/\nbaseline.yaml"] --> D["train\nscripts/train.py"]
+    B --> D
+    D --> E["outputs/checkpoints/\nbest_model.pt"]
+    E --> F["evaluate\nscripts/evaluate.py"]
+    F --> G["outputs/metrics/\ntest_metrics.json"]
+    C --> F
+```
+
+| Etapa | Entrada | Salida |
+|---|---|---|
+| `prepare_data` | `data/raw/` · `src/data/dataset.py` | `data/processed/` |
+| `train` | `data/processed/` · `configs/baseline.yaml` | `best_model.pt` |
+| `evaluate` | `best_model.pt` · test set | `test_metrics.json` · figuras |
+
+---
+
+# Bloque 3 {.section-divider}
+## Modelo y función de pérdida
+*@he2016deep · transfer learning · pérdida ponderada*
+
+---
+
+## ¿Por qué ResNet-18 y transfer learning?
+
+::: columns
+::: {.column width="55%"}
+**El problema:** ~5 800 imágenes de entrenamiento.
+
+Entrenar una CNN desde cero con tan pocas imágenes introduce sobreajuste severo. Transfer learning resuelve esto: ResNet-18 ya aprendió detectores de bordes, texturas y formas generales en ImageNet (1.2 M imágenes).
+
+**Lo que hacemos:**
+
+1. Cargar ResNet-18 con pesos de ImageNet
+2. Congelar el backbone (11 M parámetros)
+3. Reemplazar la capa final con `Dropout + Linear(512, 2)`
+4. Entrenar **solo** la capa final (~1 026 parámetros)
+:::
+::: {.column width="45%"}
+```python
+# src/models/resnet.py
+# TODO: entender qué capas
+#       se están fine-tuneando.
+# REPLACE: cambia freeze_backbone
+#          a false para fine-tuning
+#          completo.
+
+model = models.resnet18(
+    weights=ResNet18_Weights.IMAGENET1K_V1
+)
+# Congelar backbone
+for param in model.parameters():
+    param.requires_grad = False
+
+# Nueva cabeza de clasificación
+model.fc = nn.Sequential(
+    nn.Dropout(p=0.4),
+    nn.Linear(512, 2)
+)
+# Solo model.fc tiene requires_grad=True
+```
+:::
+:::
+
+---
+
+## Resumen de parámetros del modelo
+
+| Configuración | Parámetros entrenables | Tiempo/época (T4) |
+|---|---|---|
+| `freeze_backbone=True` (baseline) | ~1 026 | ~45 s |
+| `freeze_backbone=False` (fine-tuning) | ~11 177 538 | ~2 min |
+
+::: {.callout-tip}
+## TODO para el instructor
+
+Ejecutar en vivo: `python -c "from src.models.resnet import build_model, model_summary; model_summary(build_model())"`
+
+Mostrar la diferencia entre los dos modos. Preguntar: ¿cuándo vale la pena pagar el costo computacional del fine-tuning completo?
+:::
+
+---
+
+## La función de pérdida ponderada
+
+::: columns
+::: {.column width="55%"}
+Sin pesos, `CrossEntropyLoss` trata NORMAL y PNEUMONIA como igualmente importantes.
+
+Con $w_{pos}=2.0$, cada error en PNEUMONIA penaliza el **doble**, empujando al modelo hacia mayor recall de la clase positiva.
+
+$$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} w_{y_i} \left[ y_i \log \hat{p}_i + (1-y_i)\log(1-\hat{p}_i) \right]$$
+
+con $w_{\text{PNEUMONIA}}=2.0$ y $w_{\text{NORMAL}}=1.0$.
+:::
+::: {.column width="45%"}
+```python
+# src/training/trainer.py
+# TODO: por qué usamos pesos de clase.
+# REPLACE: modifica loss.class_weights
+# .pneumonia en el YAML.
+# ¿Hay un punto en que subir
+# el peso daña la precision?
+
+weights = torch.tensor(
+    [w_normal, w_pneumonia],
+    dtype=torch.float,
+    device=device
+)
+criterion = nn.CrossEntropyLoss(
+    weight=weights
+)
+```
+:::
+:::
+
+::: {.callout-warning}
+## Trade-off recall vs. precision
+
+Subir $w_{pos}$ → más recall, pero posiblemente menos precision. El límite clínico define el balance aceptable. Experimenta con 3.0 y 4.0 y observa en W&B.
+:::
+
+---
+
+## El loop de entrenamiento
+
+```python
+# src/training/trainer.py — simplificado
+for epoch in range(1, cfg["training"]["epochs"] + 1):
+
+    # ── Forward + backward ────────────────────────────────────────
+    model.train()
+    for images, labels in train_loader:
+        optimizer.zero_grad()
+        logits = model(images.to(device))
+        loss   = criterion(logits, labels.to(device))
+        loss.backward()          # gradientes
+        optimizer.step()         # actualizar pesos entrenables
+
+    # ── Validación ───────────────────────────────────────────────
+    val_metrics = evaluate_epoch(model, val_loader, criterion, device)
+
+    # ── Log en W&B ────────────────────────────────────────────────
+    wandb_run.log({"epoch": epoch, **val_metrics})
+
+    # ── Early stopping: guarda el mejor checkpoint ───────────────
+    if val_metrics["val/recall"] > best_recall:
+        best_recall = val_metrics["val/recall"]
+        torch.save(model.state_dict(), "outputs/checkpoints/best_model.pt")
+        # TODO: entender cómo se selecciona el mejor modelo.
+        # ¿Por qué usamos recall y no accuracy para seleccionar?
+```
+
+---
+
+# Bloque 4 {.section-divider}
+## Infraestructura de auditabilidad
+*Git · DVC · W&B*
+
+---
+
+## Los tres sistemas de registro
+
+```{mermaid}
+flowchart TD
+    A["Experimento\nclasificador de neumonía"] --> B["Git\nHistorial del código\ny configuraciones"]
+    A --> C["DVC\nHistorial del pipeline\ny los datos"]
+    A --> D["W&B\nHistorial de métricas\ny ejecuciones"]
+    B --> E["Commit reproducible\ncódigo + YAML"]
+    C --> F["dvc repro\npipeline auditable"]
+    D --> G["Dashboard\ncomparar runs"]
+```
+
+| Sistema | ¿Qué versiona? | ¿Cuándo? |
+|---|---|---|
+| **Git** | Código + configs YAML | Cada cambio significativo |
+| **DVC** | Datos + pipeline | Cada dataset nuevo o etapa nueva |
+| **W&B** | Métricas + hiperparámetros | Cada run de entrenamiento |
+
+---
+
+## Git como historial del experimento
+
+```bash
+# Flujo de trabajo durante el workshop
+git init
+git add .
+git commit -m "feat: estructura inicial del proyecto"
+
+# Después de cada experimento significativo:
+git add configs/baseline.yaml
+git commit -m "exp: baseline resnet18 freeze=true w_pos=2.0"
+
+# REPLACE: después de modificar w_pos=3.0:
+git add configs/experiment_01.yaml
+git commit -m "exp: w_pos=3.0 — observar efecto en recall"
+
+# Ver el historial de experimentos
+git log --oneline
+```
+
+::: {.callout-tip}
+## TODO para el instructor
+
+Mostrar `git log --oneline` después de dos commits y conectarlo con los runs de W&B. El hash del commit puede loggearse en W&B como `wandb.config.git_commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()`
+:::
+
+---
+
+## W&B: comparar dos runs
+
+```python
+# scripts/train.py — integración W&B
+wandb_run = wandb.init(
+    project = "pneumonia-classifier",
+    tags    = ["baseline", "resnet18", "w_pos-2.0"],
+    config  = {
+        "lr":              cfg["training"]["learning_rate"],
+        "batch_size":      cfg["training"]["batch_size"],
+        "freeze_backbone": cfg["model"]["freeze_backbone"],
+        "w_pos":           cfg["loss"]["class_weights"]["pneumonia"],
+        "seed":            cfg["seed"],
+    },
+)
+
+# Dentro del loop, por época:
+wandb_run.log({
+    "epoch":        epoch,
+    "train/loss":   train_loss,
+    "val/recall":   val_recall,
+    "val/auc":      val_auc,
+    "lr":           scheduler.get_last_lr()[0],
+})
+# TODO: comparar dos runs en W&B.
+# REPLACE: cambia learning_rate y ejecuta un segundo run.
+#          ¿Cuál converge más rápido?
+```
+
+---
+
+# Bloque 5 {.section-divider}
+## Métricas y evaluación de la hipótesis
+*Recall · AUC-ROC · criterio de éxito clínico*
+
+---
+
+## ¿Por qué recall como métrica primaria?
+
+::: columns
+::: {.column width="55%"}
+$$\text{Recall} = \frac{TP}{TP + FN}$$
+
+En diagnóstico médico los errores **no son simétricos**:
+
+- **Falso Negativo (FN):** decir "normal" a una neumonía → el paciente no recibe tratamiento → **el error más peligroso**
+- **Falso Positivo (FP):** decir "neumonía" a un caso normal → examen adicional, molestias → **costoso pero no fatal**
+
+La función de pérdida ponderada y la métrica de recall ambas priorizan minimizar los FN.
+
+**Criterio clínico:** recall ≥ 0.90 en la clase PNEUMONIA.
+:::
+::: {.column width="45%"}
+::: {.callout-warning}
+## Por qué accuracy engaña aquí
+
+74% del test son PNEUMONIA. Un modelo que **siempre predice PNEUMONIA** obtiene:
+
+- Accuracy = 62.5% ← parece razonable
+- Recall = 1.00 ← parece perfecto
+- AUC-ROC = 0.50 ← no discrimina en absoluto
+
+Por eso necesitamos **ambas** métricas para evaluar la hipótesis.
+:::
+:::
+:::
+
+---
+
+## ¿Por qué AUC-ROC como métrica secundaria?
+
+::: columns
+::: {.column width="55%"}
+$$\text{AUC-ROC} = \int_0^1 \text{TPR}(t)\, d\text{FPR}(t)$$
+
+El AUC-ROC mide la **capacidad discriminativa del modelo independientemente del umbral de decisión**.
+
+- AUC = 0.50 → el modelo es equivalente a lanzar una moneda
+- AUC = 1.00 → separación perfecta entre clases
+
+Un modelo con recall = 1.0 y AUC = 0.5 predice siempre la clase positiva sin discriminar. Por eso exigimos **AUC-ROC > 0.50** como condición secundaria para sostener H₁.
+:::
+::: {.column width="45%"}
+```python
+# src/evaluation/metrics.py
+# TODO: entender AUC-ROC.
+
+from sklearn.metrics import roc_auc_score
+
+auc = roc_auc_score(labels, probs)
+# 'probs' son P(PNEUMONIA) — no las
+# predicciones binarias.
+# El AUC se calcula sobre la curva
+# continua, no sobre un umbral fijo.
+
+# TODO: entender cómo se calcula recall.
+from sklearn.metrics import recall_score
+
+recall = recall_score(
+    labels, preds,
+    pos_label=1  # 1 = PNEUMONIA
+)
+```
+:::
+:::
+
+---
+
+## Evaluación de la hipótesis: código
+
+```python
+# src/evaluation/metrics.py
+def print_report(metrics: dict, cfg: dict) -> None:
+    target = cfg["metrics"]["target"]   # 0.90
+    recall = metrics["recall_pneumonia"]
+    auc    = metrics["auc_roc"]
+
+    h1_recall = recall >= target        # recall >= 0.90
+    h1_auc    = auc    > 0.50           # AUC-ROC > baseline trivial
+    h1        = h1_recall and h1_auc
+
+    print(f"Recall PNEUMONIA : {recall:.4f}  → {'✓ CUMPLE' if h1_recall else '✗ NO CUMPLE'}")
+    print(f"AUC-ROC          : {auc:.4f}    → {'✓ CUMPLE' if h1_auc    else '✗ NO CUMPLE'}")
+
+    if h1:
+        print("→ H₁ SOSTENIDA: el modelo supera los criterios clínicos.")
+    else:
+        print("→ H₀ NO RECHAZADA: el modelo no cumple los criterios.")
+```
+
+---
+
+## Resultados esperados (placeholder)
+
+::: {.callout-note}
+## Esta slide se actualiza durante la sesión en vivo
+
+Los valores se completan con los resultados del run ejecutado en clase.
+:::
+
+| Métrica | Baseline (mayoría) | Experimento baseline | ¿Cumple? |
+|---|---|---|---|
+| Recall PNEUMONIA | 1.000 | — | — |
+| AUC-ROC | 0.500 | — | — |
+| Precision PNEUMONIA | 0.625 | — | — |
+| Accuracy | 0.625 | — | — |
+| **H₁ sostenida** | ✗ | — | — |
+
+::: {.callout-tip}
+## TODO para el instructor
+
+Llenar la tabla en tiempo real mientras el entrenamiento termina. Mostrar el dashboard de W&B en paralelo. Conectar los resultados con la hipótesis formulada en el Día 1.
+:::
+
+---
+
+## Interpretación: cómo decidir si H₁ se cumple
+
+```{mermaid}
+flowchart TD
+    A["Experimento completado\nbest_model.pt generado"] --> B["Evaluar en test set\npython scripts/evaluate.py"]
+    B --> C{"recall_pneumonia\n≥ 0.90?"}
+    C -->|"No"| D["H₀ no rechazada\nAjustar w_pos o\ndescongelar backbone"]
+    C -->|"Sí"| E{"AUC-ROC\n> 0.50?"}
+    E -->|"No"| F["Modelo no discrimina\nRevisar pipeline\nbuscar data leakage"]
+    E -->|"Sí"| G["H₁ SOSTENIDA\nDocumentar en\nreporte Quarto"]
+```
+
+::: {.callout-warning}
+## Si H₁ no se sostiene
+
+No es un fracaso — es información científica. El experimento reveló que esta configuración no es suficiente. El siguiente paso es modificar **una variable** (p.ej. descongelar el backbone) y ejecutar un nuevo run. Eso es exactamente DoE en práctica.
+:::
+
+---
+
+# Bloque 6 {.section-divider}
+## Entrenamiento en vivo y cierre
+*Ejecutar · observar · iterar*
+
+---
+
+## Checklist antes de ejecutar
+
+::: columns
+::: {.column width="50%"}
+**Entorno:**
+
+- [ ] `uv venv --python 3.10` ejecutado
+- [ ] `.venv` activado: `source .venv/bin/activate`
+- [ ] `uv pip install -e ".[dev]"` completado
+- [ ] `ruff --version` y `pytest --version` funcionan
+
+**Código y reproducibilidad:**
+
+- [ ] `configs/baseline.yaml` completado
+- [ ] Dataset en `data/raw/chest_xray/`
+- [ ] `wandb login` ejecutado
+- [ ] `dvc init` ejecutado
+- [ ] Tests pasan: `pytest`
+- [ ] `seed: 42` en el YAML
+:::
+::: {.column width="50%"}
+```bash
+# Secuencia de comandos en vivo
+
+# 1. Formatear código antes de empezar
+ruff format src/ scripts/
+ruff check src/ scripts/
+
+# 2. Verificar tests
+uv run pytest
+
+# 3. Entrenamiento (run 1 — baseline)
+uv run python scripts/train.py \
+  --config configs/baseline.yaml
+
+# 4. Evaluación
+uv run python scripts/evaluate.py \
+  --config configs/baseline.yaml
+
+# 5. Segundo run (copia y modifica lr)
+uv run python scripts/train.py \
+  --config configs/experiment_01.yaml
+```
+:::
+:::
+
+---
+
+## Criterios de éxito del Día 2
+
+::: {.callout-important}
+## Al finalizar esta sesión, el experimento debe cumplir:
+:::
+
+| Criterio | Verificación |
+|---|---|
+| **Entorno `.venv` con uv** | `source .venv/bin/activate && python --version` |
+| **Código formateado con ruff** | `ruff check src/ scripts/ tests/` sin errores |
+| **≥ 2 runs en W&B** | Dashboard en wandb.ai |
+| **`dvc repro` sin errores** | `dvc repro && echo "OK"` |
+| **`configs/baseline.yaml` definido** | `cat configs/baseline.yaml` |
+| **`best_model.pt` generado** | `ls outputs/checkpoints/` |
+| **Seeds correctamente fijadas** | `set_seed()` en `config.py` |
+| **Configuración desacoplada** | Ningún valor hardcodeado en `.py` |
+| **Tests pasando** | `uv run pytest` |
+| **Hipótesis evaluada** | `outputs/metrics/test_metrics.json` |
+
+---
+
+## Lo que viene — Día 3
+
+::: columns
+::: {.column width="50%"}
+**Día 3 · Reproducibilidad y evaluación rigurosa:**
+
+- Pipeline completamente reproducible con DVC
+- Evaluación más allá del accuracy: métricas por subgrupos
+- Análisis de errores: ¿dónde y por qué falla el modelo?
+- Ajuste del umbral de decisión para cumplir el criterio clínico
+- Grad-CAM: visualizar qué parte de la imagen activa el modelo
+:::
+::: {.column width="50%"}
+::: {.callout-tip}
+## Para mañana
+
+Asegúrate de tener:
+
+- `best_model.pt` en `outputs/checkpoints/`
+- Al menos 2 runs en W&B con distintos hiperparámetros
+- `dvc repro` corriendo sin errores
+- Anotado en tu notebook: ¿el modelo cumple H₁?
+:::
+:::
+:::
+
+---
+
+## Referencias
+
+::: {#refs}
+:::
