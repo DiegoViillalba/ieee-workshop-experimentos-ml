@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "threshold": 0.4,
+    "accuracy": 0.9473684210526315,
+    "recall_malignant": 0.9761904761904762,
+    "precision_malignant": 0.8913043478260869,
+    "f1_malignant": 0.9318181818181818,
+    "recall_benign": 0.9305555555555556,
+    "auc_roc": 0.9937169312169312,
+    "average_precision": 0.42259077845493637
+  },
+  "baseline": {
+    "baseline/accuracy": 0.631578947368421,
+    "baseline/recall": 0.0,
+    "baseline/auc": 0.5
+  },
+  "config": {
+    "model": "logistic_regression",
+    "class_weight": "balanced",
+    "C": 1.0,
+    "seed": 42
+  },
+  "hypothesis": {
+    "H1_recall_ge_090": true,
+    "H1_auc_gt_050": true,
+    "H1_sustained": true
+  }
+}

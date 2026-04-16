@@ -1,0 +1,1564 @@
+---
+title: "Dia 3: Evaluación, Validación e Interpretación"
+subtitle: "De metrica unica a evidencia confiable"
+author: "Workshop IEEE 2026"
+lang: es
+format:
+  revealjs:
+    theme: unam-theme.scss
+    transition: fade
+    slide-number: c/t
+    controls: true
+    progress: true
+    center: false
+    width: 1280
+    height: 720
+    margin: 0.08
+    highlight-style: github
+    code-block-height: 320px
+    footer: "Sesión 3 · Workshop ML · Clasificador de cáncer de mama · CPU"
+    logo: "Logo_FC_Color.png"
+    fig-align: center
+    mermaid:
+      theme: neutral
+
+---
+
+
+
+```{python}
+#| label: setup
+#| echo: false
+#| message: false
+import json, warnings
+import numpy as np
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.gridspec import GridSpec
+from sklearn.datasets import load_breast_cancer
+
+warnings.filterwarnings("ignore")
+
+# Los archivos JSON/CSV deben estar en el mismo directorio que slides_day3.qmd
+# quarto render los busca desde el directorio del archivo .qmd
+matplotlib.rcParams.update({
+    "figure.dpi": 130,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "font.size": 11,
+})
+
+# ── Paleta consistente ───────────────────────────────────────────────────────
+C_MAL  = "#2166ac"   # azul — maligno
+C_BEN  = "#d6604d"   # coral — benigno
+C_LOG  = "#1a6633"   # verde oscuro — logistic
+C_MLP  = "#7b2d8b"   # morado — MLP
+C_BASE = "#888888"   # gris — baseline
+C_GRID = "#eeeeee"
+
+# ── Cargar datos de los runs ─────────────────────────────────────────────────
+# Coloca los JSON en el mismo directorio que el .qmd, o ajusta las rutas.
+def load_json(name):
+    return json.load(open(name))
+
+seed_data    = load_json("day2_metrics/seed_sensitivity.json")
+val_metrics  = load_json("day2_metrics/val_metrics.json")
+diagnostics  = load_json("day2_metrics/diagnostics.json")
+sweep_data   = load_json("day2_metrics/sweep_results.json")
+test_metrics = load_json("day2_metrics/test_metrics.json")
+thresh_data  = load_json("day2_metrics/threshold_tuning.json")["threshold_sweep"]
+```
+
+---
+
+## Orden del día
+
+Dia 3: **Evaluacion, Validacion e Interpretacion**.
+
+Objetivo de la sesion:
+
+- Evaluar que tan bueno es el modelo.
+- Validar que tan confiable es ese resultado.
+- Interpretar por que ocurre ese comportamiento.
+
+::: {.callout-tip}
+## Mensaje central
+
+Un numero en un solo split no es evidencia. Evidencia es un numero que se sostiene bajo variacion de semillas, hiperparametros y umbrales, y que podemos explicar.
+:::
+
+---
+
+## Recordatorio del pipeline (Dia 2)
+
+Pipeline existente (no se reemplaza):
+
+- YAML para decisiones experimentales.
+- DVC para reproducibilidad y trazabilidad.
+- W&B para comparar runs.
+
+Principio de hoy: **cambiar poco, aprender mucho**.
+
+::: columns
+::: {.column width="50%"}
+**Lo que ya tenemos:**
+
+```
+configs/baseline.yaml   ← unico archivo que cambia
+scripts/train.py        ← no se toca
+scripts/evaluate.py     ← no se toca
+dvc.yaml                ← pipeline intacto
+```
+:::
+::: {.column width="50%"}
+**Lo que agregamos hoy:**
+
+```
+scripts/sweep.py        ← barrido de seeds/params
+outputs/errors/         ← analisis de errores
+configs/sweep.yaml      ← parametros a variar
+models/mlp.py           ← arquitectura a comparar
+```
+:::
+:::
+
+
+---
+
+## Problema central
+
+Pregunta clave: **¿Podemos confiar en el modelo?**
+
+No alcanza con una sola metrica en un solo split.
+
+Necesitamos evidencia en tres ejes:
+
+- **calidad** ($\text{accuracy}, \text{recall}, \text{precision}, \text{F1}, \text{AUC}$),
+- **estabilidad** (seeds, hiperparametros, threshold),
+- **explicabilidad** (coeficientes vs caja negra).
+
+::: {.callout-warning}
+## Por que tres ejes y no uno?
+
+Un modelo puede tener recall = 0.97 en seed 42 y recall = 0.81 en seed 99.
+El primer numero parece excelente. El segundo revela fragilidad.
+Sin los tres ejes no sabemos cual de los dos es el resultado real.
+:::
+
+
+---
+
+## Tres respuestas incorrectas sobre evaluacion
+
+Errores clasicos al reportar resultados:
+
+::: {.callout-important}
+## Respuesta incorrecta 1
+
+"Tiene accuracy = 0.96, asi que es excelente."
+
+*R2 calculado sobre que datos? Sobre los mismos que usaste para entrenarlo?*
+:::
+
+::: {.callout-important}
+## Respuesta incorrecta 2
+
+"El recall es 0.97."
+
+*Pequeno comparado con que? Importan igual todos los errores? Es estable?*
+:::
+
+::: {.callout-important}
+## Respuesta incorrecta 3
+
+"Lo probe con algunos casos y funciono bien."
+
+*Que significa algunos casos? Como los seleccionaste? Son representativos?*
+:::
+
+La evaluacion correcta responde cuatro preguntas: que metrica, sobre que datos, como interpretar, y como elegir la configuracion.
+
+
+---
+
+## De la pregunta del Dia 1 a la evidencia del Dia 3
+
+La pregunta del Dia 1 fue: *recall >= 0.90 y AUC > 0.50?*
+
+El Dia 2 la respondio con un solo run. Eso no es suficiente.
+
+| Lo que reportamos el Dia 2 | Lo que preguntamos hoy |
+|---|---|
+| recall = 0.97 con seed 42 | recall = 0.97 +/- cuanto con 5 seeds? |
+| AUC = 0.99 con C = 1.0 | AUC cambia si C = 0.01 o C = 100? |
+| modelo logistic | logistic sigue siendo mejor que MLP aqui? |
+| prediccion puntual | que muestras falla sistematicamente? |
+
+::: {.callout-note}
+No invalidamos el resultado del Dia 2. Lo ponemos a prueba.
+:::
+
+
+---
+
+## Evaluacion: mas alla de accuracy
+
+Accuracy puede ocultar errores graves.
+
+$$\text{recall}_{maligno} = \frac{TP}{TP + FN}$$
+
+::: columns
+::: {.column width="55%"}
+**Por que recall y no accuracy?**
+
+Supongamos 100 tumores: 37 malignos, 63 benignos.
+
+Un modelo que siempre predice benigno obtiene:
+
+- accuracy = 63% ← parece razonable
+- recall maligno = 0% ← no detecta ningun cancer
+
+Un falso negativo (cancer no detectado) tiene consecuencias clinicas graves. Un falso positivo (alarma falsa) genera una biopsia adicional — molesto, pero corregible.
+:::
+::: {.column width="45%"}
+**Las cuatro metricas del dia:**
+
+| Metrica | Que mide |
+|---|---|
+| recall | FN que evitamos |
+| precision | FP que generamos |
+| F1 | balance recall/precision |
+| AUC-ROC | capacidad de ranking |
+
+La jerarquia es: recall primero, AUC segundo, F1 tercero.
+:::
+:::
+
+---
+
+
+::: columns
+::: {.column width="70%"}
+
+![](https://upload.wikimedia.org/wikipedia/commons/1/17/PPV%2C_NPV%2C_Sensitivity_and_Specificity.svg)
+
+:::
+::: {.column width="30%"}
+
+### ¿Qué muestra la figura?
+
+- Dos distribuciones:
+  - **Sano (azul)**
+  - **Enfermo (rojo)**
+
+- Un **threshold (cutoff)** separa clases
+
+
+::: {.callout-important}
+## Idea clave
+
+Las métricas no son independientes:  
+**son decisiones sobre errores**.
+:::
+
+
+:::
+:::
+
+
+---
+
+## Por que no existe una sola metrica correcta
+
+La eleccion de metrica es una decision de diseño:
+
+::: columns
+::: {.column width="50%"}
+**Escenario A — screening clinico:**
+
+Errores grandes (cancer no detectado) son cualitativamente peores que errores pequenos.
+
+→ Priorizar recall aunque baje precision.
+
+**Escenario B — diagnostico previo a cirugia:**
+
+Necesitas alta certeza antes de operar.
+
+→ Priorizar precision aunque baje recall.
+:::
+::: {.column width="50%"}
+**La pregunta que define la metrica:**
+
+> *De cada 100 mujeres con cancer, cuantas puede perder el sistema antes de que sea inaceptable?*
+
+Si la respuesta es "ninguna": recall es la metrica.
+
+Si la respuesta es "prefiero intervenir solo cuando estoy seguro": precision es la metrica.
+
+La metrica traduce las consecuencias del error en un numero.
+:::
+:::
+
+::: {.callout-tip}
+## Regla de diseño experimental
+
+(Día 1) La metrica de evaluacion debe elegirse **antes** de entrenar el primer modelo, junto con la pregunta cientifica.
+:::
+
+---
+
+## La matriz de confusion — resultados reales
+
+```{python}
+#| label: confusion-matrix
+#| fig-width: 9
+#| fig-height: 3.8
+#| echo: false
+from sklearn.metrics import ConfusionMatrixDisplay
+import numpy as np
+
+# Datos reales del test set (seed=42, threshold=0.4)
+# 42 malignos totales: 41 TP + 1 FN
+# 72 benignos totales: 5 FP + 67 TN
+cm      = np.array([[41, 1], [5, 67]])
+cm_norm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
+
+fig, axes = plt.subplots(1, 2, figsize=(7, 3.8))
+for ax, mat, title, fmt in [
+    (axes[0], cm,      "Conteos",     "d"),
+    (axes[1], cm_norm, "Normalizada", ".3f"),
+]:
+    im = ax.imshow(mat, cmap="Blues", vmin=0, vmax=mat.max())
+    ax.set_xticks([0,1]); ax.set_yticks([0,1])
+    ax.set_xticklabels(["maligno","benigno"]); ax.set_yticklabels(["maligno","benigno"])
+    ax.set_xlabel("Predicho"); ax.set_ylabel("Real")
+    ax.set_title(f"Matriz de confusion ({title})", fontweight="bold")
+    for i in range(2):
+        for j in range(2):
+            val = mat[i,j]
+            color = "white" if val > mat.max()*0.55 else "#333"
+            ax.text(j, i, f"{val:{fmt}}", ha="center", va="center",
+                    fontsize=14, color=color, fontweight="bold")
+plt.tight_layout()
+plt.show()
+```
+
+::: columns
+::: {.column width="55%"}
+**Lectura clinica del resultado:**
+
+- **41 TP:** malignos correctamente detectados ✓
+- **1 FN:** maligno NO detectado ← el error mas grave
+
+
+:::
+::: {.column width="45%"}
+```{python}
+#| label: test-summary
+#| echo: false
+tm = test_metrics["metrics"]
+bl = test_metrics["baseline"]
+rows = [
+    ("Metrica",         "Modelo",  "Baseline"),
+    ("accuracy",        f"{tm['accuracy']:.3f}", f"{bl['baseline/accuracy']:.3f}"),
+    ("recall maligno",  f"{tm['recall_malignant']:.3f}", f"{bl['baseline/recall']:.3f}"),
+    ("precision malig.",f"{tm['precision_malignant']:.3f}", "—"),
+    ("AUC-ROC",         f"{tm['auc_roc']:.3f}", f"{bl['baseline/auc']:.3f}"),
+]
+df_tm = pd.DataFrame(rows[1:], columns=rows[0])
+print(df_tm.to_string(index=False))
+h1 = test_metrics["hypothesis"]
+print(f"\nH1_recall_ge_090 : {h1['H1_recall_ge_090']}")
+print(f"H1_auc_gt_050    : {h1['H1_auc_gt_050']}")
+print(f"H1_sustained     : ✓ {h1['H1_sustained']}")
+```
+:::
+:::
+
+
+---
+
+## Curva ROC vs curva Precision-Recall
+
+::: columns
+::: {.column width="50%"}
+**Curva ROC**
+
+Mide la capacidad de ranking independientemente del threshold.
+
+- Eje X: tasa de FP (1 - especificidad)
+- Eje Y: tasa de TP (recall)
+- AUC = 0.5 → no discrimina (azar)
+- AUC = 1.0 → separacion perfecta
+
+Util para comparar modelos globalmente.
+
+**Limitacion:** puede ser optimista con datasets desbalanceados. Un modelo que predice siempre positivo tiene AUC = 0.5, no 0.0.
+:::
+::: {.column width="50%"}
+**Curva Precision-Recall**
+
+Mas informativa con clases desbalanceadas.
+
+- Eje X: recall (sensibilidad)
+- Eje Y: precision (valor predictivo positivo)
+- AP (area bajo PR) mas sensible al desbalance
+
+**Lectura practica:**
+
+Si recall sube de 0.90 a 0.99 pero precision baja de 0.95 a 0.60, estamos generando muchos FP para recuperar pocos FN adicionales.
+
+Esa es la decision clinica: cuanto FP toleramos por cada FN evitado?
+:::
+:::
+
+---
+
+```{python}
+#| label: roc-pr
+#| fig-width: 9
+#| fig-height: 3.5
+#| echo: false
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve, precision_recall_curve, roc_auc_score, average_precision_score
+
+bc = load_breast_cancer()
+X, y = bc.data, bc.target
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+sc = StandardScaler(); X_tr = sc.fit_transform(X_tr); X_te = sc.transform(X_te)
+lr = LogisticRegression(C=1.0, class_weight="balanced", max_iter=500, random_state=42)
+lr.fit(X_tr, y_tr)
+proba = lr.predict_proba(X_te)[:, 1]   # P(benigno) — sklearn convention para AUC
+
+# AUC es simetrico: AUC(benigno) == AUC(maligno)
+auc = roc_auc_score(y_te, proba)
+fpr, tpr, _ = roc_curve(y_te, proba)
+
+# PR para maligno (pos_label=0): usamos 1-proba como score de maligno
+proba_mal = lr.predict_proba(X_te)[:, 0]
+ap = average_precision_score((y_te==0).astype(int), proba_mal)
+prec, rec, _ = precision_recall_curve((y_te==0).astype(int), proba_mal)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+axes[0].plot(fpr, tpr, color=C_MAL, lw=2.5, label=f"Logistic  AUC = {auc:.3f}")
+axes[0].plot([0,1],[0,1],"--", color="#aaa", lw=1.2, label="Azar (0.500)")
+axes[0].set(xlabel="FPR (Falsos Positivos)", ylabel="TPR (Recall)", title="Curva ROC")
+axes[0].legend(fontsize=10); axes[0].set_xlim([-0.02,1.02]); axes[0].set_ylim([-0.02,1.05])
+
+axes[1].plot(rec, prec, color=C_MLP, lw=2.5, label=f"Logistic  AP = {ap:.3f}")
+axes[1].set(xlabel="Recall (maligno)", ylabel="Precision (maligno)", title="Curva Precision-Recall (maligno)")
+axes[1].legend(fontsize=10); axes[1].set_xlim([-0.02,1.02]); axes[1].set_ylim([-0.02,1.05])
+
+plt.tight_layout()
+plt.show()
+```
+
+
+
+---
+
+##  Validacion: confianza del resultado
+
+Validar no es repetir exactamente el mismo run.
+
+Se agregan tres pruebas de confianza:
+
+- multiples seeds,
+- sensibilidad a hiperparametros,
+- threshold tuning en validacion.
+
+Si pequenas variaciones cambian mucho el recall, el sistema no es robusto.
+
+::: {.callout-important}
+## Regla practica
+
+Si `std(recall)` entre 5 seeds supera 0.03, el resultado reportado en un solo run no es confiable. Hay que reportar media +/- std, no un punto.
+:::
+
+
+
+---
+
+## El problema fundamental del overfitting
+
+Por que las metricas de entrenamiento enganan:
+
+::: columns
+::: {.column width="55%"}
+Como un estudiante que memoriza las respuestas del examen anterior:
+
+- En el examen del año pasado: 100/100
+- En un examen nuevo: 45/100
+
+Un modelo puede hacer exactamente lo mismo — memorizar el ruido de los datos de entrenamiento sin aprender la relacion subyacente.
+
+**Overfitting:** el modelo ajusta demasiado bien los datos de entrenamiento, incluyendo su ruido. Generaliza mal.
+
+**El sweet spot:** visible solo si tenemos datos separados para medir el error de validacion.
+:::
+::: {.column width="45%"}
+**Error vs complejidad:**
+
+```{python}
+#| echo: false
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Eje de complejidad
+x = np.linspace(0, 10, 100)
+
+# Curvas sintéticas
+train_error = np.exp(-0.5 * x) + 0.05
+val_error = 0.05 * (x - 5)**2 + 0.2
+
+plt.figure(figsize=(5, 2.5))
+
+plt.plot(x, train_error, label="Train error")
+plt.plot(x, val_error, label="Validation error")
+
+# Sweet spot
+sweet_x = 5
+sweet_y = 0.05 * (sweet_x - 5)**2 + 0.2
+plt.scatter(sweet_x, sweet_y)
+plt.text(sweet_x, sweet_y + 0.05, "Sweet spot", ha='center')
+
+plt.xlabel("Complejidad")
+plt.ylabel("Error")
+plt.legend()
+plt.title("Bias-Variance Tradeoff")
+
+plt.show()
+```
+
+- Error entrenamiento: siempre baja con mas complejidad.
+- Error validacion: baja hasta el sweet spot, luego sube.
+
+El punto de cruce no es visible en los datos de entrenamiento.
+:::
+:::
+
+
+---
+
+## El principio central de la validacion
+
+**La evaluacion del modelo debe hacerse sobre datos que el modelo nunca vio durante el entrenamiento.**
+
+::: columns
+::: {.column width="50%"}
+**Train-Test Split:**
+
+```
+Dataset completo (n = 569)
+
+split estratificado
+├── Training set (80%)
+│   └── desarrollo del modelo
+└── Test set (20%)
+    └── SELLADO hasta el final
+```
+
+Proporciones recomendadas:
+
+| Dataset | Train | Test |
+|---|---|---|
+| < 1K muestras | 70% | 30% |
+| 1K–10K | 80% | 20% |
+| > 100K | 90% | 10% |
+:::
+::: {.column width="50%"}
+**Por que estratificar?**
+
+Sin estratificacion, el test set podria tener por azar 20% de malignos en lugar de 37%.
+
+Las metricas varian enormemente entre corridas sin que el modelo haya cambiado.
+
+Con `stratify=y`:
+
+- Train: exactamente 37% malignos
+- Test: exactamente 37% malignos
+
+En sklearn: `train_test_split(..., stratify=y)`
+
+Usar siempre en clasificacion con desbalance.
+:::
+:::
+
+
+---
+
+## Cross-validation: mas alla del split unico
+
+El test set es solo una muestra. Con otra semilla podria ser AUC = 0.78 o AUC = 0.84.
+
+La solucion: no hacer un solo split. Hacer muchos y promediar.
+
+::: columns
+::: {.column width="55%"}
+**K-Fold CV (K = 5):**
+
+```
+Fold 1: [Val | Tr  | Tr  | Tr  | Tr ]
+Fold 2: [Tr  | Val | Tr  | Tr  | Tr ]
+Fold 3: [Tr  | Tr  | Val | Tr  | Tr ]
+Fold 4: [Tr  | Tr  | Tr  | Val | Tr ]
+Fold 5: [Tr  | Tr  | Tr  | Tr  | Val]
+         → AUC = mean ± std
+```
+
+Cada observacion aparece exactamente una vez en un fold de validacion.
+
+Ventaja: la desviacion estandar de las K metricas indica que tan estable es el modelo.
+:::
+::: {.column width="45%"}
+**Que valor de K usar?**
+
+| K | Cuando |
+|---|---|
+| K = 5 | caso general |
+| K = 10 | datasets medianos |
+| K = n (LOOCV) | datasets muy pequenos |
+
+
+**CV no reemplaza al test set.** Es para desarrollo. El test se evalua una sola vez al final.
+:::
+:::
+
+
+---
+
+## Data leakage: el error mas costoso
+
+Un modelo que parece excelente en desarrollo y falla en produccion casi siempre tiene data leakage.
+
+::: columns
+::: {.column width="50%"}
+**Leakage tipo 1 — variables del futuro:**
+
+Usamos "numero de materias reprobadas al final del semestre" para predecir abandono.
+
+AUC en desarrollo = 0.95. Al momento de predecir (inicio de semestre), esa variable no existe.
+
+**Regla:** cada variable debe estar disponible en el momento en que se hara la prediccion real.
+
+**Leakage tipo 2 — preprocesamiento antes del split:**
+
+Normalizar con media y desviacion del dataset completo. El escalador "vio" el test set. Las metricas quedan artificialmente buenas.
+:::
+::: {.column width="50%"}
+**Leakage tipo 3 — el test que ya no es test:**
+
+```
+Entrenamos modelo A. AUC test = 0.76
+Ajustamos params.   AUC test = 0.79
+Cambiamos features. AUC test = 0.82
+Reportamos: AUC = 0.82
+```
+
+El test dejo de ser test. Optimizamos sobre el.
+
+**El flujo correcto:**
+
+```
+1. Split train/test  → Test: SELLADO
+2. EDA solo en train
+3. Preprocesador en train (fit)
+4. K-Fold CV sobre train
+5. Seleccionar mejor modelo
+6. Evaluar UNA VEZ en test
+```
+
+La regla de oro: todo lo que aprende de los datos debe aprenderse solo de los datos de entrenamiento.
+:::
+:::
+
+
+
+---
+
+## Validacion por multiples seeds — resultados reales
+
+**Pregunta:** recall = 0.976 con seed 42 — es representativo o fue suerte?
+
+```{python}
+#| label: seed-sensitivity
+#| fig-width: 9
+#| fig-height: 3.5
+#| echo: false
+
+# Datos reales del experimento (seed_sensitivity.json + sweep_results.json)
+seed_labels  = [7, 42, 99]
+seed_recalls = [0.9762, 0.9762, 0.9762]
+seed_aucs    = [0.9967, 0.9937, 0.9964]
+
+# MLP por seed (de sweep_results, hidden=[8,16,32] promediados por seed)
+runs = sweep_data["runs"]
+mlp_by_seed = {}
+for r in runs:
+    if r["model_type"] == "mlp":
+        s = r["seed"]
+        mlp_by_seed.setdefault(s, []).append(r["recall_malignant"])
+mlp_seeds   = sorted(mlp_by_seed.keys())
+mlp_means   = [np.mean(mlp_by_seed[s]) for s in mlp_seeds]
+mlp_stds    = [np.std(mlp_by_seed[s])  for s in mlp_seeds]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+
+# Left: recall by seed
+x = np.arange(len(seed_labels))
+w = 0.35
+axes[0].bar(x - w/2, seed_recalls, w, color=C_LOG, alpha=0.85, label="Logistic")
+axes[0].bar(x + w/2, mlp_means,   w, color=C_MLP, alpha=0.85, label="MLP (media 3 arq.)",
+            yerr=mlp_stds, capsize=5, error_kw=dict(elinewidth=1.5, ecolor="#333"))
+axes[0].axhline(0.90, color="red", ls="--", lw=1.5, label="objetivo ≥ 0.90")
+axes[0].set_xticks(x); axes[0].set_xticklabels([f"seed={s}" for s in seed_labels])
+axes[0].set_ylabel("recall maligno"); axes[0].set_ylim([0.88, 1.02])
+axes[0].set_title("Recall por seed", fontweight="bold"); axes[0].legend(fontsize=9)
+
+# Right: std comparison bar
+models  = ["Logistic(3 seeds)", "MLP(9 configs)"]
+stds    = [float(sweep_data["aggregate"]["recall_std"]) * 0,  # from seed_data: std=0
+           float(sweep_data["aggregate"]["recall_std"])]
+stds[0] = float(seed_data["summary"]["recall_std"])
+colors  = [C_LOG, C_MLP]
+bars = axes[1].bar(models, stds, color=colors, alpha=0.85, width=0.45)
+axes[1].axhline(0.03, color="red", ls="--", lw=1.5, label="limite robustez (0.03)")
+axes[1].set_ylabel("std(recall)"); axes[1].set_ylim([0, 0.06])
+axes[1].set_title("Variabilidad del recall", fontweight="bold"); axes[1].legend(fontsize=9)
+for bar, v in zip(bars, stds):
+    axes[1].text(bar.get_x() + bar.get_width()/2, v + 0.001,
+                 f"{v:.4f}", ha="center", fontsize=11, fontweight="bold")
+
+plt.tight_layout(); plt.show()
+```
+
+::: {.callout-note}
+## Lectura de los datos reales
+
+Logistic: recall = 0.976 ± 0.000 en los 3 seeds — **varianza cero**, el resultado es completamente estable.
+
+MLP: recall medio 0.968 ± 0.011 — mayor variabilidad, aunque todos los runs superan 0.90.
+
+**Conclusion:** Logistic es mas predecible. La estabilidad es un argumento adicional a su favor.
+:::
+
+---
+
+## Threshold tuning — datos del val set
+
+El threshold de 0.5 no es una ley — es una convencion.
+
+```{python}
+#| label: threshold-tuning
+#| fig-width: 9
+#| fig-height: 3.5
+#| echo: false
+
+# Datos reales de threshold_tuning.json (sobre val set)
+ts      = [r["threshold"]         for r in thresh_data]
+recalls = [r["recall_malignant"]   for r in thresh_data]
+precs   = [r["precision_malignant"] for r in thresh_data]
+accs    = [r["accuracy"]           for r in thresh_data]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+
+# Left: recall y precision vs threshold
+axes[0].plot(ts, recalls, "o-", color=C_MAL, lw=2.5, ms=7, label="Recall maligno")
+axes[0].plot(ts, precs,   "s--",color=C_BEN, lw=2.5, ms=7, label="Precision maligno")
+axes[0].axhline(0.90, color="red", ls=":", lw=1.5, label="objetivo ≥ 0.90")
+axes[0].axvline(0.4,  color="#888", ls="--", lw=1, alpha=0.7, label="threshold optimo (0.4)")
+axes[0].set(xlabel="Threshold", ylabel="Metrica", title="Recall vs Precision en val set",
+            ylim=[0.82, 1.02], xticks=ts)
+axes[0].legend(fontsize=9)
+
+# Right: table de valores
+col_labels = ["t", "recall", "precision", "accuracy"]
+table_data = [[f"{r['threshold']:.1f}",
+               f"{r['recall_malignant']:.3f}",
+               f"{r['precision_malignant']:.3f}",
+               f"{r['accuracy']:.3f}"] for r in thresh_data]
+axes[1].axis("off")
+tbl = axes[1].table(cellText=table_data, colLabels=col_labels,
+                    cellLoc="center", loc="center", bbox=[0,0,1,1])
+tbl.auto_set_font_size(False); tbl.set_fontsize(11)
+for j in range(4):
+    tbl[(0,j)].set_facecolor("#2166ac"); tbl[(0,j)].set_text_props(color="white", fontweight="bold")
+# Highlight threshold=0.4 row (row index 2 = t=0.4)
+for j in range(4):
+    tbl[(2,j)].set_facecolor("#d4eaf7")
+axes[1].set_title("Tabla de resultados (val)", fontweight="bold", pad=15)
+
+plt.tight_layout(); plt.show()
+```
+
+::: {.callout-tip}
+## Lectura del resultado real
+
+Con t = 0.4: recall = 0.969, precision = 0.969, accuracy = 0.977 — **el punto de mayor F1 y mejor balance**.
+
+Con t = 0.3: recall = 0.969, precision = 0.886 — mismo recall, mas FP (menos precision). No hay ganancia en recall bajando el threshold aqui.
+
+El threshold optimo se elige siempre en **val set**, nunca mirando el test set.
+:::
+
+
+
+---
+
+## Experimento central: Logistic vs MLP
+
+Comparamos dos familias:
+
+- **LogisticRegression** (baseline interpretable),
+- **MLPClassifier** (mayor capacidad, mayor complejidad).
+
+Pregunta :
+
+- El MLP mejora de forma consistente? O solo agrega varianza y opacidad?
+
+::: columns
+::: {.column width="50%"}
+**Logistic — lo que ya sabemos:**
+
+```yaml
+# configs/baseline.yaml
+model:
+  type: logistic_regression
+  class_weight: balanced
+  C: 1.0
+```
+
+Resultado: recall = 0.97 +/- 0.004 (5 seeds)
+:::
+::: {.column width="50%"}
+**MLP — nuevo experimento:**
+
+```yaml
+# configs/mlp.yaml
+model:
+  type: mlp
+  hidden_layer_sizes: [64, 32]
+  max_iter: 500
+  alpha: 0.0001
+```
+
+Se ejecuta con el mismo pipeline, sin cambiar scripts.
+:::
+:::
+
+
+---
+
+## Hiperparametros: que son y por que no se aprenden solos
+
+
+::: columns
+::: {.column width="50%"}
+**Parametros del modelo** — los aprende el algoritmo:
+
+- En Logistic: los coeficientes $\beta_0, \beta_1, \ldots, \beta_p$
+- En MLP: los pesos $w$ y sesgos $b$ de cada capa
+
+Se obtienen minimizando la funcion de perdida sobre los datos de entrenamiento.
+
+**Hiperparametros** — los elige el analista antes de entrenar:
+
+- En Logistic: `C` (inverso de regularizacion)
+- En MLP: numero de capas, neuronas por capa, `alpha`
+- En cualquier modelo: `random_state`, `max_iter`
+:::
+::: {.column width="50%"}
+**Por que no aprender C con gradient descent?**
+
+Logistic con regularizacion minimiza:
+
+$$\text{MSE} + \frac{1}{C} \sum \beta_j^2$$
+
+Si C tambien se aprende minimizando el MSE de entrenamiento, el optimizador siempre elige C = infinito (sin regularizacion) porque eso minimiza el error en train.
+
+El modelo se sobreajustaria completamente.
+
+Para elegir bien los hiperparametros, necesitamos evaluarlos en datos que el modelo no uso para aprenderlos — por eso usamos CV.
+:::
+:::
+
+
+
+---
+
+## Grid Search: busqueda exhaustiva
+
+Grid Search define un conjunto finito de valores para cada hiperparametro y prueba todas las combinaciones.
+
+```python
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LogisticRegression
+
+param_grid = {
+    "C": [0.01, 0.1, 1.0, 10.0, 100.0],
+    "class_weight": ["balanced", None],
+}
+# 5 x 2 = 10 combinaciones x 5 folds = 50 entrenamientos
+
+gs = GridSearchCV(
+    LogisticRegression(max_iter=500),
+    param_grid,
+    cv=5,
+    scoring="recall",  # metrica primaria
+    refit=True,        # re-entrena con la mejor config sobre todo el train set
+)
+gs.fit(X_train, y_train)
+print(f"Mejor config: {gs.best_params_}")
+print(f"Recall CV:    {gs.best_score_:.4f}")
+```
+
+::: {.callout-warning}
+## La explosion combinatoria
+
+Con 10 valores por hiperparámetro y K=5, el número de entrenamientos crece exponencialmente: 50 → 500 → 5,000 → 50,000. Con 3 o más hiperparámetros, Grid Search se vuelve impracticable.
+:::
+
+
+---
+
+## Random Search: cuando Grid Search no escala
+
+En problemas reales con muchos hiperparametros, no todos importan igual. Grid Search gasta recursos explorando variaciones de hiperparametros irrelevantes.
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import loguniform
+
+param_dist = {
+    "C": loguniform(0.001, 100),     # muestrea continuamente
+    "class_weight": ["balanced", None],
+    "solver": ["lbfgs", "saga"],
+}
+# n_iter = presupuesto de evaluaciones
+rs = RandomizedSearchCV(
+    LogisticRegression(max_iter=500),
+    param_dist,
+    n_iter=30,     # 30 x 5 = 150 entrenamientos vs miles con grid
+    cv=5,
+    scoring="recall",
+    random_state=42,
+)
+rs.fit(X_train, y_train)
+```
+
+::: {.callout-note}
+## Flujo recomendado
+
+1. Random Search con presupuesto moderado para explorar el espacio. (screening)
+2. Identificar la region prometedora.
+3. Grid Search fino en esa region.
+
+Para Logistic con 1-2 hiperparametros: Grid Search es suficiente. Para MLP con 4+ hiperparametros: Random Search primero.
+:::
+
+---
+
+## Resultados y trade-offs
+
+```{python}
+#| label: sweep-comparison
+#| fig-width: 10
+#| fig-height: 4.2
+#| echo: false
+
+runs = sweep_data["runs"]
+log_runs = [r for r in runs if r["model_type"]=="logistic_regression"]
+mlp_runs = [r for r in runs if r["model_type"]=="mlp"]
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 5))
+
+# Panel 1: scatter recall vs AUC
+for r in log_runs:
+    axes[0].scatter(r["recall_malignant"], r["auc_roc"],
+                    color=C_LOG, s=70, alpha=0.85, zorder=3, label="Logistic" if r==log_runs[0] else "")
+for r in mlp_runs:
+    axes[0].scatter(r["recall_malignant"], r["auc_roc"],
+                    color=C_MLP, s=70, alpha=0.85, marker="^", zorder=3, label="MLP" if r==mlp_runs[0] else "")
+axes[0].axvline(0.90, color="red", ls="--", lw=1.3, label="objetivo 0.90")
+axes[0].set(xlabel="Recall maligno", ylabel="AUC-ROC",
+            title="Recall vs AUC (18 configs)", xlim=[0.93, 1.0], ylim=[0.985, 1.002])
+axes[0].legend(fontsize=9)
+
+# Panel 2: boxplot recall por modelo
+data_log = [r["recall_malignant"] for r in log_runs]
+data_mlp = [r["recall_malignant"] for r in mlp_runs]
+bp = axes[1].boxplot([data_log, data_mlp], labels=["Logistic", "MLP"],
+                      patch_artist=True, widths=0.45,
+                      medianprops=dict(color="#333", lw=2))
+bp["boxes"][0].set_facecolor(C_LOG); bp["boxes"][0].set_alpha(0.7)
+bp["boxes"][1].set_facecolor(C_MLP); bp["boxes"][1].set_alpha(0.7)
+axes[1].axhline(0.90, color="red", ls="--", lw=1.3)
+axes[1].set(ylabel="Recall maligno", title="Distribucion del recall(9 configs cada uno)", ylim=[0.92, 1.0])
+
+# Panel 3: mean±std summary
+models_lbl = ["Logistic", "MLP"]
+means = [np.mean(data_log), np.mean(data_mlp)]
+stds  = [np.std(data_log),  np.std(data_mlp)]
+bars = axes[2].bar(models_lbl, means, color=[C_LOG, C_MLP], alpha=0.85, width=0.45,
+                   yerr=stds, capsize=7, error_kw=dict(elinewidth=2, ecolor="#333"))
+axes[2].axhline(0.90, color="red", ls="--", lw=1.3, label="objetivo 0.90")
+for bar, m, s in zip(bars, means, stds):
+    axes[2].text(bar.get_x()+bar.get_width()/2, m+s+0.003,
+                 f"{m:.3f}\n±{s:.3f}", ha="center", fontsize=9.5, fontweight="bold")
+axes[2].set(ylabel="Recall maligno", title="Media ± std\n(9 configs)", ylim=[0.92, 1.02])
+axes[2].legend(fontsize=9)
+
+plt.tight_layout(); plt.show()
+```
+
+
+---
+
+::: columns
+::: {.column width="55%"}
+**Resultados del sweep (18 configs totales):**
+
+| Criterio | Logistic (9) | MLP (9) |
+|---|---|---|
+| recall medio | 0.968 | 0.968 |
+| recall std | 0.012 | 0.012 |
+| AUC medio | 0.994 | 0.995 |
+| H1 todos los runs | si | si |
+| interpretable | si | no |
+| tiempo train | < 1 s | ~2 s |
+
+Ambos modelos sostienen H1. La diferencia en recall es minima.
+:::
+::: {.column width="45%"}
+::: {.callout-warning}
+## Mensaje clave
+
+Los modelos tienen rendimiento **estadisticamente equivalente** en este dataset.
+
+Logistic gana por:
+
+- Interpretabilidad directa (coeficientes)
+- Misma estabilidad a menor costo computacional
+- Explicabilidad regulatoria
+
+La mejora del MLP no justifica la opacidad.
+:::
+:::
+:::
+
+
+
+---
+
+##  La optimizacion como dialogo con el dominio
+
+Caso de desercion estudiantil con restriccion de recursos:
+
+| C | Recall | Precision | F1 | N predichos |
+|---|---|---|---|---|
+| 0.01 | 0.62 | 0.71 | 0.66 | 98 |
+| 0.1 | 0.74 | 0.65 | 0.69 | 127 |
+| **1.0** | **0.81** | **0.58** | **0.68** | **156** |
+| 10.0 | 0.83 | 0.54 | 0.65 | 172 |
+| 100.0 | 0.84 | 0.52 | 0.64 | 181 |
+
+
+---
+
+##  La optimizacion como dialogo con el dominio
+
+::: {.callout-tip}
+## La decision no es matematica, es de negocio
+
+Contexto: el sistema puede intervenir con 150 estudiantes por semestre.
+
+- C = 100: recall maximo, pero 181 predicciones — excede capacidad.
+- C = 1: recall 0.81, 156 predicciones — ligeramente sobre capacidad, negociable.
+- C = 0.1: 127 predicciones, recall aceptable 0.74.
+
+**Recomendacion:** C = 1. Argumento: captura 81% de estudiantes en riesgo con una carga ligeramente superior a 150. El equipo puede considerar ampliar capacidad levemente.
+
+Grid Search y Random Search generan las opciones. La decision final requiere dialogo con el stakeholder.
+:::
+
+
+---
+
+## Analisis de errores
+
+Se genera `outputs/errors/errors.csv` con:
+
+- features de la muestra,
+- etiqueta real,
+- prediccion,
+- probabilidades,
+- tipo de error (FP/FN de maligno).
+
+::: columns
+::: {.column width="55%"}
+```python
+# Como se genera (en evaluate.py)
+errors = pd.DataFrame(X_test, columns=feature_names)
+errors["y_true"]    = y_test
+errors["y_pred"]    = preds
+errors["p_maligno"] = proba[:, 0]
+errors["error_type"] = errors.apply(
+    lambda r: "FN_maligno" if r.y_true==0 and r.y_pred==1
+    else "FP_maligno" if r.y_true==1 and r.y_pred==0
+    else "OK", axis=1
+)
+errors[errors.error_type != "OK"].to_csv(
+    "outputs/errors/errors.csv", index=False
+)
+```
+:::
+::: {.column width="45%"}
+**Preguntas al revisar el CSV:**
+
+- Los FN (malignos perdidos): tienen features atipicas?
+- Tienen `p_maligno` muy cerca de 0.5? (casos ambiguos)
+- Son los mismos casos con todas las seeds? (error sistematico vs estocastico)
+
+Si los mismos casos fallan con Logistic y MLP, el error es del dato, no del modelo.
+:::
+:::
+
+
+---
+
+## Lectura practica de errors.csv
+
+```
+radius_mean  texture_mean  ...  y_true  y_pred  p_maligno  error_type
+    12.3          18.2     ...    0       1       0.43      FN_maligno
+    11.8          17.6     ...    0       1       0.48      FN_maligno
+    13.1          22.4     ...    0       1       0.46      FN_maligno
+```
+
+::: {.callout-warning}
+## Patron a buscar
+
+Si los FN tienen `p_maligno` entre 0.40 y 0.50 con threshold = 0.50, son casos que el modelo considera ambiguos. La solucion puede ser bajar el threshold, no cambiar el modelo.
+
+Si los FN tienen `p_maligno` < 0.30, el modelo esta muy equivocado en esas muestras. Hay que investigar las features de esos casos especificos.
+
+Un punto puede ser influyente (cambiar los coeficientes si se elimina) sin tener un error grande, o tener un error grande sin ser influyente. Ambos merecen investigacion.
+:::
+
+
+---
+
+## Diagnosticos: brecha train vs test
+
+Un buen modelo tiene metricas similares en train y test. Una brecha grande indica overfitting.
+
+```{python}
+#| label: train-test-gap
+#| fig-width: 9
+#| fig-height: 3.8
+#| echo: false
+
+dg_train = diagnostics["train"]
+dg_test  = diagnostics["test"]
+gaps     = diagnostics["gaps"]
+
+metrics_lbl = ["accuracy", "recall\nmaligno", "AUC-ROC"]
+train_vals  = [dg_train["accuracy"], dg_train["recall_malignant"], dg_train["auc_roc"]]
+test_vals   = [dg_test["accuracy"],  dg_test["recall_malignant"],  dg_test["auc_roc"]]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+
+# Left: grouped bar train vs test
+x = np.arange(len(metrics_lbl)); w = 0.35
+axes[0].bar(x - w/2, train_vals, w, color="#2d6a4f", alpha=0.85, label="Train")
+axes[0].bar(x + w/2, test_vals,  w, color=C_MAL, alpha=0.85, label="Test")
+axes[0].set_xticks(x); axes[0].set_xticklabels(metrics_lbl, fontsize=10)
+axes[0].set(ylabel="Metrica", title="Train vs Test (threshold=0.4)", ylim=[0.93, 1.01])
+axes[0].legend(fontsize=10)
+for xi, (tv, dv) in enumerate(zip(train_vals, test_vals)):
+    for xpos, val, offset in [(xi-w/2, tv, -w/2-0.01), (xi+w/2, dv, w/2-0.01)]:
+        axes[0].text(xi + offset + w/2 + 0.02, val + 0.001, f"{val:.3f}",
+                     ha="center", fontsize=8)
+
+# Right: gap table
+gap_labels = ["accuracy\ngap", "recall\ngap", "AUC\ngap"]
+gap_vals   = [gaps["accuracy_gap"], gaps["recall_gap"], gaps["auc_gap"]]
+colors_gap = ["#d62728" if v > 0.05 else "#2ca02c" for v in gap_vals]
+axes[1].barh(gap_labels, gap_vals, color=colors_gap, alpha=0.85, height=0.45)
+axes[1].axvline(0.05, color="orange", ls="--", lw=1.5, label="umbral de atencion (0.05)")
+axes[1].axvline(0.10, color="red",    ls="--", lw=1.5, label="umbral critico (0.10)")
+axes[1].set(xlabel="Brecha (train - test)", title="Brechas train/test", xlim=[0, 0.08])
+axes[1].legend(fontsize=9)
+for i, (lbl, v) in enumerate(zip(gap_labels, gap_vals)):
+    axes[1].text(v + 0.001, i, f"{v:.4f}", va="center", fontsize=10, fontweight="bold")
+
+plt.tight_layout(); plt.show()
+```
+
+::: {.callout-tip}
+## Lectura del diagnostico
+
+Todas las brechas son menores a 0.05 — el modelo **no muestra signos de overfitting severo**.
+
+- accuracy gap = 0.034: normal para este tamano de dataset
+- recall gap = 0.009: el modelo generaliza bien el recall
+- AUC gap = 0.004: discriminacion consistente entre train y test
+
+Conclusion: el modelo aprendio patrones reales, no ruido de los datos de entrenamiento.
+:::
+
+---
+
+# Interpretacion de los coeficientes reales del modelo
+
+## Interpretacion — coeficientes reales del modelo
+
+```{python}
+#| label: coefficients
+#| fig-width: 9
+#| fig-height: 4.4
+#| echo: false
+import csv
+from sklearn.datasets import load_breast_cancer
+
+bc = load_breast_cancer()
+feature_names = list(bc.feature_names)
+
+coef_rows = []
+with open("day2_metrics/logistic_coefficients.csv") as f:
+    for row in csv.DictReader(f):
+        idx = int(row["feature_index"])
+        coef_rows.append({"feature": feature_names[idx],
+                           "coef": float(row["coefficient"]),
+                           "abs":  float(row["abs_coefficient"])})
+coef_rows.sort(key=lambda x: x["abs"], reverse=True)
+top10 = coef_rows[:10]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+
+# Left: horizontal bar chart top-10
+feats = [r["feature"].replace(" ", "\n") for r in top10][::-1]
+coefs = [r["coef"] for r in top10][::-1]
+colors_bar = [C_MAL if c < 0 else C_BEN for c in coefs]
+bars = axes[0].barh(feats, coefs, color=colors_bar, alpha=0.85, height=0.65)
+axes[0].axvline(0, color="#555", lw=1)
+axes[0].set(xlabel="Coeficiente", title="Top 10 features por |coeficiente|", xlim=[-1.35, 0.15])
+axes[0].tick_params(axis="y", labelsize=8.5)
+for bar, c in zip(bars, coefs):
+    axes[0].text(c + (0.02 if c < 0 else -0.02),
+                 bar.get_y() + bar.get_height()/2,
+                 f"{c:+.3f}", va="center", ha="right" if c < 0 else "left",
+                 fontsize=8, color="white" if abs(c)>0.3 else "#333")
+
+# Right: all 30 features sorted by |coef|
+all_coefs = [r["coef"] for r in coef_rows]
+all_idx   = range(len(all_coefs))
+colors_all = [C_MAL if c < 0 else C_BEN for c in all_coefs]
+axes[1].bar(all_idx, all_coefs, color=colors_all, alpha=0.75, width=0.8)
+axes[1].axhline(0, color="#555", lw=0.8)
+axes[1].set(xlabel="Feature (ordenado por |coef|)", ylabel="Coeficiente",
+            title="Todos los coeficientes (30 features)")
+leg = [mpatches.Patch(color=C_MAL, label="Negativo (sube riesgo maligno)"),
+       mpatches.Patch(color=C_BEN, label="Positivo (baja riesgo maligno)")]
+axes[1].legend(handles=leg, fontsize=8.5, loc="lower right")
+
+plt.tight_layout(); plt.show()
+```
+
+::: {.callout-note}
+## Lectura de los coeficientes reales
+
+Los 3 features mas influyentes son **radius error**, **worst texture** y **worst concave points** — todos con coeficiente negativo: mayor valor del feature → mayor probabilidad de maligno (clase 0).
+
+Esto es consistente con el conocimiento medico: tumores malignos son mas grandes, mas irregulares y con mayor variabilidad de forma. El modelo aprendio los patrones correctos.
+
+**MLP:** sin coeficientes interpretables. Si MLP y Logistic fallan en los mismos casos, el problema es del dato, no del modelo.
+:::
+
+
+---
+
+##  Top features de Logistic — por que importan
+
+| Feature | Coef. | Significado clinico |
+|---|---|---|
+| `radius error` | -1.115 | variabilidad del radio → tumor irregular |
+| `worst texture` | -1.108 | textura maxima → tejido rugoso maligno |
+| `worst concave points` | -1.029 | concavidades extremas → forma irregular |
+| `worst radius` | -0.994 | radio maximo → tumor grande |
+| `worst area` | -0.986 | area maxima → correlaciona con tamano |
+
+::: {.callout-note}
+## Conexion con conocimiento medico
+
+Los features de morfologia (perimetro, concavidades, radio) son exactamente lo que un radiologo evalua visualmente. El modelo aprendio patrones consistentes con la literatura medica — eso refuerza la confianza en el resultado.
+
+Del PDF: los diagnosticos son preguntas, no sentencias. Si un coeficiente tiene signo inesperado, investigar antes de reportar — puede ser multicolinealidad, no un error del modelo.
+:::
+
+---
+
+## Discusion
+
+**¿Mas complejo = mejor?**
+
+No necesariamente.
+
+Decidimos por evidencia conjunta:
+
+- desempeno en test,
+- estabilidad entre seeds,
+- sensibilidad a threshold,
+- capacidad de explicacion.
+
+
+---
+
+## Discusion
+
+::: columns
+::: {.column width="45%"}
+**Marco de decision:**
+
+Si MLP mejora recall > 0.03 de forma
+estable (std < 0.01 entre seeds)
+y la mejora se sostiene en analisis
+de errores:
+    → usar MLP, documentar limitaciones
+
+Si la mejora es < 0.03 o inestable:
+    → usar Logistic, documentar
+       robustez y explicabilidad
+
+:::
+::: {.column width="47%"}
+**Preguntas guia:**
+
+1. Si MLP sube accuracy pero baja recall maligno, es mejor o peor?
+
+2. Si cambia mucho entre seeds, confiarias en el resultado reportado?
+
+3. Si MLP mejora poco y pierde interpretabilidad, vale la pena el costo?
+
+4. Que error es mas critico aqui: FP o FN de maligno?
+:::
+:::
+
+---
+
+## El circulo completo de la evaluacion
+
+El proceso es iterativo, no lineal:
+
+```{mermaid}
+flowchart LR
+    A["Problema\ny metricas"] --> B["Grid / Random\nSearch + CV"]
+    B --> C["Seleccion\nde modelo"]
+    C --> D["Diagnosticos\nde residuales"]
+    D --> E{"Patrones\nen errores?"}
+    E -->|Si| F["Mejorar\nespecificacion"]
+    F --> B
+    E -->|No| G["AIC / BIC\nvalidacion teorica"]
+    G --> H{"CV y AIC/BIC\ncoinciden?"}
+    H -->|Si| I["Evidencia\nrobusta"]
+    H -->|No| F
+    I --> J["Evaluar UNA\nVEZ en test"]
+```
+
+::: {.callout-note}
+## La seleccion de modelos no es una receta con pasos fijos
+
+Es una decision de diseño que requiere entender el problema, conocer las herramientas, saber interpretar los resultados y reconocer las limitaciones. No hay respuestas universales. Hay principios que guian las decisiones.
+:::
+
+
+---
+
+## Conexion con modelos modernos
+
+A medida que sube complejidad, sube necesidad de validacion fuerte.
+
+Este dia es un puente hacia modelos mas modernos:
+
+- mayor capacidad,
+- mayor riesgo de sobreajuste,
+- menor interpretabilidad directa.
+
+La disciplina experimental del pipeline es la defensa principal.
+
+::: columns
+::: {.column width="50%"}
+**La escala de complejidad:**
+
+| Modelo | Params | Interpretable | Necesita seeds |
+|---|---|---|---|
+| Logistic | ~30 | si | poco |
+| MLP (64,32) | ~2500 | no | mas |
+| Random Forest | variable | parcial | mas |
+| XGBoost | variable | parcial | mas |
+| Red profunda | millones | no | critico |
+
+**Regla:** cuanta mas capacidad, mas validacion necesaria.
+:::
+::: {.column width="50%"}
+**Lo que hicimos hoy aplica siempre:**
+
+- multiples seeds → valido para cualquier modelo estocastico
+- Grid / Random Search + CV → necesario antes de cualquier deploy
+- analisis de errores → obligatorio en dominios clinicos
+- AIC/BIC → complementa CV con perspectiva teorica
+- interpretacion → requerida en muchos contextos regulatorios (GDPR, FDA)
+
+La herramienta cambia. El rigor experimental no.
+:::
+:::
+
+
+---
+
+## Resumen ejecutivo — H1 sostenida
+
+```{python}
+#| label: h1-summary
+#| fig-width: 9
+#| fig-height: 3.6
+#| echo: false
+
+fig, axes = plt.subplots(1, 3, figsize=(9, 3.6))
+
+# Panel 1: criterios de H1
+criterios = ["recall\n≥ 0.90", "AUC-ROC\n> 0.50"]
+valores   = [test_metrics["metrics"]["recall_malignant"],
+             test_metrics["metrics"]["auc_roc"]]
+objetivos = [0.90, 0.50]
+colores_h1 = ["#1a6633" if v >= o else "#d62728"
+              for v, o in zip(valores, objetivos)]
+bars = axes[0].bar(criterios, valores, color=colores_h1, alpha=0.85, width=0.45)
+for bar, obj, val in zip(bars, objetivos, valores):
+    axes[0].axhline(obj, xmin=bar.get_x()/(1+0.1),
+                    color="red", ls="--", lw=1.5, alpha=0.7)
+    axes[0].text(bar.get_x()+bar.get_width()/2, val+0.01,
+                 f"{val:.3f}  ✓", ha="center", fontsize=12, fontweight="bold", color="white"
+                 if val >= 0.95 else "#1a6633")
+axes[0].set(ylim=[0, 1.1], title="Hipotesis H1", ylabel="Valor")
+axes[0].axhline(0, color="#555", lw=0.5)
+
+# Panel 2: modelo vs baseline
+metricas = ["accuracy", "recall\nmaligno", "AUC-ROC"]
+modelo   = [test_metrics["metrics"]["accuracy"],
+            test_metrics["metrics"]["recall_malignant"],
+            test_metrics["metrics"]["auc_roc"]]
+baseline = [test_metrics["baseline"]["baseline/accuracy"],
+            test_metrics["baseline"]["baseline/recall"],
+            test_metrics["baseline"]["baseline/auc"]]
+x2 = np.arange(len(metricas)); w2 = 0.35
+axes[1].bar(x2 - w2/2, modelo,   w2, color=C_LOG, alpha=0.85, label="Logistic")
+axes[1].bar(x2 + w2/2, baseline, w2, color=C_BASE, alpha=0.65, label="Baseline (mayoria)")
+axes[1].set_xticks(x2); axes[1].set_xticklabels(metricas, fontsize=9)
+axes[1].set(ylim=[0, 1.1], title="Modelo vs Baseline", ylabel="Metrica")
+axes[1].legend(fontsize=9)
+
+# Panel 3: text summary
+axes[2].axis("off")
+summary = [
+    ("Threshold optimo", "0.40", "#1a6633"),
+    ("Recall maligno",   "0.976  ✓", "#1a6633"),
+    ("AUC-ROC",          "0.994  ✓", "#1a6633"),
+    ("Accuracy",         "0.947", "#2166ac"),
+    ("Recall (seeds std)","0.000", "#1a6633"),
+    ("H1 sostenida",     "TRUE  ✓", "#1a6633"),
+    ("Modelo elegido",   "Logistic", "#7b2d8b"),
+]
+for i, (label, val, color) in enumerate(summary):
+    axes[2].text(0.05, 0.90 - i*0.125, f"{label}:", fontsize=10, transform=axes[2].transAxes, color="#555")
+    axes[2].text(0.62, 0.90 - i*0.125, val, fontsize=10, fontweight="bold",
+                 transform=axes[2].transAxes, color=color)
+axes[2].set_title("Resumen final", fontweight="bold")
+
+plt.tight_layout(); plt.show()
+```
+
+::: {.callout-important}
+## Decision final argumentada
+
+Modelo: **LogisticRegression** (C=1.0, class_weight=balanced, threshold=0.4)
+
+Argumentos: (1) H1 sostenida con evidencia numerica, (2) recall estable entre seeds (std=0.000), (3) coeficientes interpretables coherentes con conocimiento medico, (4) brecha train/test < 0.04 — sin overfitting.
+:::
+
+---
+
+## Cierre
+
+No buscamos el mejor numero aislado.
+
+Buscamos el **modelo mas confiable** para la decision real.
+
+::: columns
+::: {.column width="55%"}
+**Checklist de salida de Dia 3:**
+
+- [ ] comparacion Logistic vs MLP completada,
+- [ ] estabilidad documentada (5 seeds, media +/- std),
+- [ ] sensibilidad a hiperparametros registrada (Grid o Random Search),
+- [ ] threshold optimo identificado en validacion,
+- [ ] `outputs/errors/errors.csv` generado y revisado,
+- [ ] top 5 features de Logistic discutidos,
+- [ ] AIC/BIC calculados y comparados con CV,
+- [ ] decision argumentada: que modelo y por que.
+:::
+::: {.column width="45%"}
+::: {.callout-important}
+## El entregable del dia
+
+No es el modelo con mayor recall.
+
+Es el **argumento** que justifica por que ese modelo es el correcto para este problema:
+
+- metrica primaria cumplida (recall >= 0.90),
+- resultado estable bajo variacion,
+- errores criticos conocidos y documentados,
+- explicacion coherente con el dominio,
+- limitaciones reconocidas explicitamente.
+:::
+:::
+:::
+
+
+---
+
+## Discusion final (produccion)
+
+::: columns
+::: {.column width="55%"}
+**Ejemplos de monitoreo:**
+
+- drift de distribucion de features (cambia la poblacion de pacientes?)
+- caida de recall en maligno mes a mes
+- cambio en tasa de falsos negativos por cohorte
+- estabilidad de threshold recomendado
+- tiempo de inferencia si el modelo escala
+
+**Herramienta:** W&B Monitoring o Evidently AI para deteccion de drift.
+:::
+::: {.column width="45%"}
+**Lo que faltaria antes de produccion:**
+
+1. Validacion externa (otro hospital, otra cohorte)
+2. Evaluacion de equidad (funciona igual en todos los subgrupos demograficos?)
+3. Auditoria de datos (quien recopilo las muestras? como?)
+4. Revision etica y regulatoria
+5. Plan de rollback si el recall cae por debajo de 0.90
+
+
+:::
+:::
+
+Ninguno de estos pasos invalida el trabajo de hoy. Los complementa.
+
+No es suficiente reportar "mejor modelo: C = 1". Hay que explicar que configuraciones evaluaron, que trade-offs encontraron, como se conecta con las prioridades del stakeholder, y que limitaciones reconocen.

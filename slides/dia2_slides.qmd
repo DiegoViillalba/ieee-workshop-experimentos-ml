@@ -1,0 +1,1068 @@
+---
+title: "Día 2 · Reproducibilidad y evaluación de hipótesis"
+subtitle: "Como diseñar un experimento reproducible sobre datos de cáncer de mama <br> Workshop IEEE - CIC IPN"
+author: "Diego Villalba <br> diego.villalba@ciencias.unam.mx"
+date: today
+lang: es
+format:
+  revealjs:
+    theme: unam-theme.scss
+    transition: fade
+    transition-speed: fast
+    slide-number: c/t
+    controls: true
+    progress: true
+    center: false
+    width: 1000
+    height: 800
+    margin: 0.08
+    highlight-style: github
+    code-block-height: 320px
+    # Footer actualizado con derechos, contacto y workshop
+    footer: "© 2026 Diego Villalba (diego.villalba@ciencias.unam.mx)"
+    logo: "Logo_FC_Color.png"
+    fig-align: center
+    mermaid:
+      theme: neutral
+---
+## Agenda {.agenda}
+
+::: columns
+::: {.column width="55%"}
+| Tiempo | Bloque |
+|---|---|
+| `0:00–0:15` | Recapitulación Día 1 + pregunta científica |
+| `0:15–0:35` | Dataset y reproducibilidad |
+| `0:35–0:55` | Modelo y función de pérdida |
+| `0:55–1:20` | Pipeline: DVC + W&B |
+| `1:20–1:45` | Ejecución en vivo |
+| `1:45–2:00` | Métricas, hipótesis y cierre |
+:::
+::: {.column width="45%"}
+::: {.callout-note}
+## Objetivo del día
+
+Pasar de la pregunta científica del Día 1 a un **experimento ejecutable, reproducible y auditado**, corriendo en CPU en menos de 5 segundos.
+
+Al finalizar tendrás:
+
+- Pipeline corriendo de extremo a extremo
+- ≥ 2 runs comparados en W&B
+- Hipótesis H₁ evaluada con evidencia
+:::
+:::
+:::
+
+
+
+# Bloque 1 {.section-divider}
+Recapitulación y pregunta científica
+
+---
+
+## Lo que construimos ayer
+
+El experimento no es el modelo. Es el protocolo completo:
+
+$$\text{Experimento} = \text{H} + \text{D} + \text{M} + \text{P}$$
+
+Hipótesis + Datos + Métrica + Protocolo — todo definido **antes** de escribir código.
+
+::: {.callout-important}
+## La pregunta científica de hoy
+
+*"¿Un modelo de regresión logística con ponderación de clases alcanza **recall ≥ 0.90** para la clase maligna y supera a un clasificador de mayoría en AUC-ROC?"*
+
+**H₀:** recall < 0.90 ó AUC-ROC ≤ 0.50
+
+**H₁:** recall ≥ 0.90 **y** AUC-ROC > 0.50
+:::
+
+
+---
+
+## De la pregunta al código
+
+Cada componente de la pregunta se traduce directamente en código:
+
+| Componente de la pregunta | Decisión de implementación |
+|---|---|
+| Regresión logística | `LogisticRegression` |
+| Ponderación de clases | `class_weight: "balanced"` en `configs/baseline.yaml` |
+| Recall ≥ 0.90 | `metrics.primary: recall_malignant` en YAML |
+| Clase maligna | `positive_label: 0` en `data` del YAML |
+
+---
+
+## De la pregunta al código
+
+Cada componente de la pregunta se traduce directamente en código:
+
+| Componente de la pregunta | Decisión de implementación |
+|---|---|
+| Clasificador de mayoría | `DummyClassifier` en `src/evaluation/metrics.py` |
+| AUC-ROC | `roc_auc_score` en el mismo módulo |
+| Una sola evaluación en test | `test_used: false` hasta el reporte final |
+
+
+
+# Bloque 2 {.section-divider}
+Dataset y reproducibilidad
+*sklearn · CPU · seeds · YAML*
+
+
+
+---
+
+## Principios de MLOps (1/2): Fundamentos
+
+::: columns
+::: {.column width="50%"}
+
+**I. Codebase**  
+Un solo repositorio versionado → múltiples ejecuciones (experimentos, deploys).
+
+**II. Dependencies**  
+Dependencias explícitas (`requirements.txt`, `environment.yml`) → entornos reproducibles.
+
+**III. Config**  
+Configuración fuera del código (YAML/env) → experimentos trazables.
+
+:::
+::: {.column width="50%"}
+
+**IV. Backing services**  
+Bases de datos, APIs, storage → recursos externos intercambiables.
+
+**V. Build, release, run**  
+Separar construir → versionar → ejecutar → evita inconsistencias.
+
+**VI. Processes**  
+Procesos sin estado → fáciles de reiniciar, escalar y reproducir.
+
+:::
+:::
+
+::: {.callout-tip}
+## Intuición
+
+Estos principios aseguran que tu experimento  
+**se pueda reconstruir exactamente en otro entorno**.
+:::
+
+---
+
+## Principios de MLOps (2/2): Escalabilidad y operación
+
+::: columns
+::: {.column width="50%"}
+
+**VII. Port binding**  
+Servicios accesibles vía puertos → despliegue simple y estándar.
+
+**VIII. Concurrency**  
+Escalar agregando procesos → paralelización natural en ML.
+
+**IX. Disposability**  
+Inicio rápido y apagado limpio → pipelines más robustos.
+
+:::
+::: {.column width="50%"}
+
+**X. Dev/prod parity**  
+Mismo entorno en desarrollo y producción → menos errores inesperados.
+
+**XI. Logs**  
+Logs como flujo de eventos → monitoreo y debugging continuo.
+
+**XII. Admin processes**  
+Tareas administrativas como procesos aislados (scripts, evaluaciones).
+
+:::
+:::
+
+::: {.callout-important}
+## Idea clave
+
+Un buen sistema de ML no solo **aprende**,  
+también **se mantiene, escala y se entiende**.
+:::
+
+---
+
+## ¿Por qué organizar un proyecto de forma modular?
+
+::: columns
+::: {.column width="50%"}
+
+### Problema (sin modularidad)
+
+- Código mezclado: datos + modelo + evaluación
+- Difícil de **leer y mantener**
+- Cambios pequeños → rompen todo
+- Experimentos **no reproducibles**
+- Hace el proyecto **no escalable**
+
+:::
+::: {.column width="50%"}
+
+### Solución (modularidad)
+
+- Separar responsabilidades claras:
+  - datos
+  - modelo
+  - entrenamiento
+  - evaluación
+- Facilita **debugging**
+- Permite **reutilizar componentes**
+
+
+:::
+:::
+
+::: {.callout-important}
+## Idea clave
+
+Un buen proyecto de ML no es solo que funcione,  
+sino que sea **entendible, mantenible y reproducible**.
+:::
+
+
+---
+
+## Ejemplo: Estructura de proyecto bien diseñada
+
+```bash
+breast-cancer-classifier/
+├── src/
+│   ├── data/dataset.py
+│   ├── models/logistic.py
+│   ├── training/config.py
+│   ├── training/trainer.py
+│   └── evaluation/metrics.py
+├── scripts/
+├── configs/
+├── outputs/
+├── tests/
+├── quarto/
+├── docs/
+├── pyproject.toml
+└── dvc.yaml
+```
+
+::: columns
+::: {.column width="50%"}
+
+### Separación clara
+
+- `src/` → lógica del modelo
+- `scripts/` → puntos de entrada
+- `configs/` → experimentos (YAML)
+- `outputs/` → resultados
+
+:::
+::: {.column width="50%"}
+
+### Buenas prácticas MLOps
+
+- `tests/` → validación automática  
+- `docs/` → documentación clara  
+- `pyproject.toml` → dependencias  
+- `dvc.yaml` → versionado de datos  
+
+:::
+:::
+
+---
+
+## Ejemplo: Estructura de proyecto bien diseñada
+
+```bash
+breast-cancer-classifier/
+├── src/
+│   ├── data/dataset.py
+│   ├── models/logistic.py
+│   ├── training/config.py
+│   ├── training/trainer.py
+│   └── evaluation/metrics.py
+├── scripts/
+├── configs/
+├── outputs/
+├── tests/
+├── quarto/
+├── docs/
+├── pyproject.toml
+└── dvc.yaml
+```
+
+::: {.callout-tip}
+## Intuición
+
+Cada carpeta responde a una pregunta:
+
+- ¿Cómo entreno? → `scripts/`  
+- ¿Con qué parámetros? → `configs/`  
+- ¿Qué produjo? → `outputs/`  
+- ¿Cómo funciona? → `src/`  
+
+:::
+
+---
+
+## Gestión de bibliotecas y entornos
+
+::: columns
+::: {.column width="50%"}
+
+### ¿Qué significa?
+
+Controlar:
+
+- **Qué librerías** usa tu proyecto  
+- **Qué versiones exactas**  
+- **En qué entorno se ejecuta**
+
+Ejemplo:
+
+```bash
+python=3.11
+numpy=1.26.0
+scikit-learn=1.4.0
+```
+
+:::
+::: {.column width="50%"}
+
+### ¿Por qué importa?
+
+- Evita errores tipo:
+  - *"en mi máquina sí funciona"*
+- Garantiza que:
+  - Entrenamiento = Evaluación
+- Permite:
+  - Reproducir resultados meses después
+
+:::
+:::
+
+::: {.callout-important}
+## Idea clave
+
+Sin control de entorno, **no hay reproducibilidad real**  
+aunque tengas el mismo código y datos.
+:::
+
+---
+
+## ¿Por qué usar `uv` para entornos reproducibles?
+
+::: columns
+::: {.column width="50%"}
+
+### Problemas comunes
+
+- `pip` instala versiones inconsistentes  
+- Conflictos entre dependencias  
+- Entornos lentos de crear  
+- Difícil compartir setup exacto  
+
+:::
+::: {.column width="50%"}
+
+### ¿Qué aporta `uv`?
+
+- Resolución de dependencias **determinista**
+- Entornos **rápidos y ligeros**
+- Archivo lock → mismas versiones exactas
+:::
+:::
+
+```bash
+# crear entorno reproducible
+uv venv
+uv pip install -r requirements.txt
+```
+
+::: {.callout-tip}
+## Intuición
+
+`uv` convierte tu entorno en algo que puedes  
+**reconstruir exactamente, en cualquier momento y lugar**.
+:::
+
+
+---
+
+## ¿Qué es YAML y por qué lo usamos?
+
+::: columns
+::: {.column width="50%"}
+
+- Es un formato de texto **legible por humanos**
+- Se usa para definir **configuración**
+- Estructura basada en **indentación (como Python)**
+
+Ejemplo simple:
+
+```yaml
+seed: 42
+model:
+  type: "logistic_regression"
+  C: 1.0
+```
+
+:::
+::: {.column width="50%"}
+
+- **Separar código de decisiones**
+- Cambiar parámetros **sin tocar `.py`**
+- Facilitar **experimentos reproducibles**
+- Registrar todo lo que hicimos (**trazabilidad**)
+
+:::
+:::
+
+::: {.callout-tip}
+## Idea clave
+
+El YAML define el *experimento*.
+
+El código solo lo ejecuta.
+:::
+
+---
+
+## Reproducibilidad: seeds y YAML
+
+::: columns
+::: {.column width="50%"}
+```python
+# src/training/config.py
+def set_seed(seed: int = 42) -> None:
+    """
+    # TODO: verificar cómo afecta el seed.
+    # Cambia seed: 42 → 99 en el YAML.
+    # ¿Cambia el recall? ¿Cuánto?
+    # ¿Qué dice eso sobre la estabilidad
+    # del modelo y del split?
+    """
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+```
+:::
+::: {.column width="50%"}
+```yaml
+# configs/baseline.yaml
+# REPLACE: copia y cambia UN parámetro.
+
+seed: 42
+
+model:
+  type:         "logistic_regression"
+  class_weight: "balanced"  # ← ejercicio 1
+  C:            1.0          # ← ejercicio 2
+  max_iter:     200
+
+metrics:
+  primary: "recall_malignant"
+  target:  0.90
+```
+:::
+:::
+
+::: {.callout-important}
+## El código lee SIEMPRE desde el YAML
+
+Ningún valor está hardcodeado en `.py`. Cualquier cambio queda registrado en Git y en W&B automáticamente.
+:::
+
+
+---
+
+
+## ¿Por qué este dataset?
+
+::: columns
+::: {.column width="55%"}
+`sklearn.datasets.load_breast_cancer` — Breast Cancer Wisconsin
+
+| Característica | Valor |
+|---|---|
+| Tipo | Tabular (30 features numéricas) |
+| Muestras | 569 |
+| Clases | Maligno (212) · Benigno (357) |
+| Desbalance | 37% maligno / 63% benigno |
+| GPU | No necesaria |
+
+
+El desbalance real (37/63) es lo que justifica `class_weight="balanced"` y el uso de recall como métrica primaria.
+:::
+::: {.column width="45%"}
+::: {.callout-warning}
+## Por qué accuracy engaña aquí
+
+Un modelo que **siempre predice "benigno"** obtiene:
+
+- Accuracy = 63% ← parece razonable
+- Recall maligno = 0.0 ← no detecta ningún cáncer
+
+Un cáncer no detectado es mucho más peligroso que una alarma falsa.
+
+→ La métrica que importa es **recall de la clase maligna**, no accuracy.
+:::
+:::
+:::
+
+---
+
+## División estratificada
+
+```python
+# src/data/dataset.py
+X_trv, X_test, y_trv, y_test = train_test_split(
+    X, y,
+    test_size=test_size,
+    stratify=y,          # ← misma proporción maligno/benigno en cada split
+    random_state=seed,
+)
+```
+
+::: {.callout-important}
+## Por qué `stratify=y` es obligatorio
+
+Sin estratificación, el val set podría tener por azar 20% de malignos en lugar de 37%.
+Las métricas de validación quedarían sesgadas y la selección del modelo sería injusta.
+
+Blocking por clase = el principio de blocking del Día 1 aplicado a datos tabulares.
+:::
+
+| Split | Muestras | % maligno |
+|---|---|---|
+| Train | ~384 | ~37% |
+| Val | ~68 | ~37% |
+| Test | ~114 | ~37% |
+
+
+# Bloque 3 {.section-divider}
+Modelo y función de pérdida
+*Regresión logística · class_weight · recall*
+
+---
+
+## ¿Por qué regresión logística?
+
+::: columns
+::: {.column width="55%"}
+Con 569 muestras y 30 features, una red neuronal sobreajustaría fácilmente. La regresión logística es la elección correcta porque:
+
+- **Interpretable**: los coeficientes tienen significado directo
+- **Rápida**: converge en < 100 iteraciones con L-BFGS
+- **Probabilística**: devuelve P(maligno) ∈ [0, 1]
+- **Buen baseline**: si no la superas, el modelo complejo no sirve
+
+:::
+::: {.column width="45%"}
+```python
+# src/models/logistic.py
+# TODO: entender qué hace class_weight.
+# REPLACE: cambia a None y observa
+#          el efecto en recall.
+
+LogisticRegression(
+    C=1.0,
+    class_weight="balanced",
+    solver="lbfgs",
+    max_iter=200,
+    random_state=42,
+)
+```
+
+Con `class_weight="balanced"` sklearn calcula:
+
+$$w_{\text{maligno}} = \frac{n}{2 \times n_{\text{maligno}}}$$
+:::
+:::
+
+---
+
+## El efecto de `class_weight="balanced"`
+
+::: columns
+::: {.column width="50%"}
+
+**Sin `class_weight="balanced"`**
+
+- La pérdida trata ambas clases igual  
+- El modelo favorece la clase mayoritaria (benigno)  
+- Minimiza error global, pero ignora casos críticos  
+
+**Resultado típico:**
+
+- Accuracy ≈ 92%  
+- Recall maligno ≈ 0.85 ✗  
+
+:::
+::: {.column width="50%"}
+
+**Con `class_weight="balanced"`**
+
+- Los errores en maligno pesan más  
+- El modelo prioriza detectar cáncer  
+- Sacrifica un poco de accuracy global  
+
+**Resultado típico:**
+
+- Accuracy ≈ 96%  
+- Recall maligno ≈ 0.97 ✓  
+
+:::
+:::
+
+::: {.callout-important}
+## Idea clave
+En problemas desbalanceados, optimizar accuracy puede ser engañoso.  El objetivo real es **detectar lo importante**.
+:::
+
+
+# Bloque 4 {.section-divider}
+Pipeline: DVC + W&B
+*Reproducibilidad · auditabilidad · comparación de experimentos*
+
+---
+
+## Los tres sistemas de registro
+
+```{mermaid}
+flowchart LR
+    A["Experimento"] --> B["Git<br>Código + configs"]
+    A --> C["DVC<br>Datos + pipeline"]
+    A --> D["W&B<br>Métricas + runs"]
+    B --> E["dvc repro<br>reproduce exactamente"]
+    C --> E
+    D --> F["Dashboard<br>comparar runs"]
+```
+
+| Sistema | Versiona | Cuándo |
+|---|---|---|
+| **Git** | Código + YAML | Cada cambio significativo |
+| **DVC** | Datos + pipeline | Cada run reproducido |
+| **W&B** | Métricas + params | Cada ejecución de train.py |
+
+
+---
+
+## Git y GitHub: ¿qué papel juegan?
+
+::: columns
+::: {.column width="50%"}
+
+### ¿Qué es Git?
+
+- Sistema de **control de versiones**
+- Guarda el historial de cambios en:
+  - código
+  - configuraciones (YAML)
+- Permite:
+  - volver a versiones anteriores  
+  - comparar cambios  
+  - trabajar en equipo  
+
+:::
+::: {.column width="50%"}
+
+### ¿Qué es GitHub?
+
+- Plataforma sobre Git en la nube  
+- Permite:
+  - compartir repositorios  
+  - colaborar (pull requests)  
+  - centralizar el proyecto  
+
+En ML:
+
+- Git = **memoria del código**
+- GitHub = **punto de colaboración**
+
+:::
+:::
+
+::: {.callout-important}
+## Idea clave
+
+Si no versionas tu código,  
+no puedes saber **qué experimento generó qué resultado**.
+:::
+
+---
+
+## ¿Qué es DVC y por qué lo usamos?
+
+::: columns
+::: {.column width="50%"}
+
+**DVC (Data Version Control)** es una herramienta para:
+
+- Versionar **datos** (no solo código)
+- Definir **pipelines reproducibles**
+- Conectar **código + datos + resultados**
+
+Extiende a Git → pero para ML
+
+:::
+::: {.column width="50%"}
+
+**¿Qué problema resuelve?**
+
+- Datos no versionados
+- Resultados que no se pueden reproducir 
+- Pipelines manuales y frágiles 
+
+Con DVC:
+
+- Cada paso queda definido  
+- Todo se puede **re-ejecutar automáticamente**  
+- Sabes exactamente **qué cambió**
+
+:::
+:::
+
+---
+
+## ¿Qué es `dvc.yaml`?
+
+::: columns
+::: {.column width="50%"}
+
+`dvc.yaml` es el archivo donde defines:
+
+- **Etapas del pipeline**
+- **Comandos a ejecutar**
+- **Entradas y salidas**
+- **Dependencias (código, datos, configs)**
+
+Ejemplo:
+
+```yaml
+stages:
+  train:
+    cmd: python scripts/train.py
+    deps:
+      - src/training/trainer.py
+      - configs/baseline.yaml
+    outs:
+      - outputs/model.pkl
+```
+
+:::
+::: {.column width="50%"}
+
+**¿Qué permite?**
+
+- Ejecutar todo con `dvc repro`
+- Reproducir solo lo que cambió
+- Trazar:
+  - qué script generó qué output
+- Integrar con Git → historial completo
+
+::: {.callout-important}
+## Idea clave
+
+`dvc.yaml` convierte tu workflow en un  
+**grafo explícito de dependencias reproducible**.
+:::
+
+:::
+:::
+
+
+
+---
+
+## Pipeline DVC: tres etapas
+
+```{mermaid}
+flowchart LR
+    A["sklearn<br>load_breast_cancer"] --> B["prepare_data<br>src/data/dataset.py"]
+    C["configs/<br>baseline.yaml"] --> D["train<br>scripts/train.py"]
+    B --> D
+    D --> E["outputs/<br>model.pkl"]
+    E --> F["evaluate<br>scripts/evaluate.py"]
+    F --> G["outputs/metrics/<br>test_metrics.json"]
+    C --> F
+```
+
+```bash
+# Ejecutar todo de una vez
+dvc repro
+
+# Ver qué cambió
+dvc params diff
+dvc metrics diff
+```
+::: {.callout-important}
+## Idea clave
+
+DVC convierte tu experimento en un **pipeline reproducible**,  
+no en una serie de scripts sueltos.
+:::
+
+<!-- ## TODO para el instructor
+
+Mostrar `dvc dag` en terminal. Modificar un parámetro en el YAML y volver a ejecutar `dvc repro`. Preguntar: ¿qué etapas se re-ejecutaron y por qué? -->
+
+---
+
+## ¿Qué es W&B y para qué sirve?
+
+::: columns
+::: {.column width="50%"}
+
+**Weights & Biases (W&B)** es una plataforma para:
+
+- Registrar **experimentos de ML**
+- Guardar **métricas, parámetros y modelos**
+- Comparar ejecuciones (*runs*)
+
+Alternativas:
+
+- MLflow  
+- TensorBoard  
+- Neptune.ai  
+
+:::
+::: {.column width="50%"}
+
+**¿Qué nos permite?**
+
+- Comparar runs fácilmente  
+- Visualizar métricas en tiempo real  
+- Mantener historial de experimentos  
+- Identificar qué cambio mejora el modelo  
+
+Ejemplo:
+
+- Cambias `class_weight`
+- Ejecutas dos runs
+- Comparas recall y accuracy
+
+:::
+:::
+
+
+
+
+---
+
+## W&B: comparar dos runs
+
+```python
+# scripts/train.py
+wandb_run = wandb.init(
+    project = "breast-cancer-classifier",
+    config  = {
+        "model":        cfg["model"]["type"],
+        "class_weight": cfg["model"]["class_weight"],
+        "C":            cfg["model"].get("C", 1.0),
+        "seed":         cfg["seed"],
+    },
+)
+wandb_run.log({
+    "val/accuracy": val_metrics["val/accuracy"],
+    "val/recall":   val_metrics["val/recall"],
+    "val/auc":      val_metrics["val/auc"],
+})
+# TODO: comparar dos runs en W&B.
+# REPLACE: cambia class_weight y ejecuta un segundo run.
+```
+
+
+
+# Bloque 5 {.section-divider}
+Métricas y evaluación de la hipótesis
+*Recall · AUC-ROC · baseline · H₁*
+
+---
+
+## ¿Por qué recall como métrica primaria?
+
+::: columns
+::: {.column width="55%"}
+$$\text{Recall} = \frac{TP}{TP + FN}$$
+
+Los errores **no son simétricos** en diagnóstico:
+
+| Error | Consecuencia |
+|---|---|
+| **FN** (maligno predicho benigno) | Cáncer no tratado → peligroso |
+| **FP** (benigno predicho maligno) | Biopsia adicional → molesto, costoso |
+
+El costo de un FN es mucho mayor que el de un FP.
+→ Minimizar FN = maximizar recall.
+
+**Criterio clínico:** recall ≥ 0.90 en maligno.
+:::
+::: {.column width="45%"}
+::: {.callout-warning}
+## AUC-ROC como métrica secundaria
+
+AUC-ROC mide la capacidad discriminativa independientemente del umbral.
+
+- AUC = 0.50 → no discrimina (igual que una moneda)
+- AUC = 1.00 → separación perfecta
+
+Un modelo con recall = 1.0 y AUC = 0.5 predice siempre maligno. Por eso exigimos **AUC > 0.50** como condición adicional.
+:::
+:::
+:::
+
+---
+
+## El baseline de mayoría
+
+```python
+# src/evaluation/metrics.py
+# TODO: entender por qué el baseline es necesario.
+
+dummy = DummyClassifier(strategy="most_frequent")
+dummy.fit(X_train, y_train)
+
+# Predice siempre "benigno" (clase mayoritaria)
+# accuracy  = 0.626  ← parece razonable
+# recall    = 0.000  ← no detecta ningún cáncer
+# AUC-ROC   = 0.500  ← no discrimina en absoluto
+```
+
+::: {.callout-important}
+## El baseline define el piso mínimo
+
+Cualquier modelo útil debe superar al baseline en **ambas** métricas simultáneamente.
+
+Si accuracy = 96% pero recall = 0.80: **el modelo no sirve** para screening clínico.
+Si recall = 0.95 pero AUC = 0.50: **el modelo solo predice siempre positivo**.
+
+La hipótesis H₁ exige que se cumplan las dos condiciones a la vez.
+:::
+
+---
+
+## Evaluación de la hipótesis
+
+```python
+# src/evaluation/metrics.py
+def print_report(metrics, baseline_metrics, cfg):
+    target = cfg["metrics"]["target"]   # 0.90
+    recall = metrics["recall_malignant"]
+    auc    = metrics["auc_roc"]
+
+    h1_recall = recall >= target        # recall ≥ 0.90
+    h1_auc    = auc    > 0.50
+    h1        = h1_recall and h1_auc
+
+    print(f"Recall maligno : {recall:.4f}  → {'✓' if h1_recall else '✗'}")
+    print(f"AUC-ROC        : {auc:.4f}  → {'✓' if h1_auc else '✗'}")
+
+    if h1:
+        print("→ H₁ SOSTENIDA")
+    else:
+        print("→ H₀ NO RECHAZADA — ajustar class_weight o C")
+```
+
+---
+
+## Resultados del baseline (placeholder)
+
+::: {.callout-note}
+## Esta tabla se completa durante la sesión en vivo
+:::
+
+| Métrica | Baseline (mayoría) | Modelo baseline | ¿Cumple? |
+|---|---|---|---|
+| Recall maligno | 0.000 | — | — |
+| AUC-ROC | 0.500 | — | — |
+| Accuracy | 0.626 | — | — |
+| **H₁ sostenida** | ✗ | — | — |
+
+
+<!-- ## TODO para el instructor
+
+Completar la tabla en tiempo real mientras el pipeline termina. Preguntar: ¿qué pasaría si cambiamos el umbral de 0.5 a 0.3? ¿Sube el recall? ¿A qué costo? -->
+
+
+
+# Bloque 6 {.section-divider}
+Ejecución en vivo y cierre
+
+---
+
+## Checklist antes de ejecutar
+
+::: columns
+::: {.column width="50%"}
+**Entorno:**
+
+- [ ] `.venv` activo: `which python`
+- [ ] `uv pip install -e ".[dev]"` completado
+- [ ] `wandb login` ejecutado
+- [ ] `dvc init` ejecutado
+
+**Tests:**
+
+- [ ] `pytest tests/test_model.py -v` — todos PASSED
+:::
+::: {.column width="50%"}
+```bash
+# Secuencia completa en vivo
+
+# 1. Tests del modelo
+uv run pytest tests/test_model.py -v
+
+# 2. Run 1 — baseline
+uv run python scripts/train.py \
+  --config configs/baseline.yaml
+
+# 3. Evaluación
+uv run python scripts/evaluate.py \
+  --config configs/baseline.yaml
+
+# 4. Run 2 — sin balanceo
+cp configs/baseline.yaml \
+   configs/no_balance.yaml
+# Editar: class_weight: null
+uv run python scripts/train.py \
+  --config configs/no_balance.yaml
+```
+:::
+:::
+
+---
+
+## Criterios de éxito del Día 2
+
+| Criterio | Verificación |
+|---|---|
+| **≥ 2 runs en W&B** | Dashboard en wandb.ai |
+| **`dvc repro` sin errores** | `dvc repro && echo "OK"` |
+| **`model.pkl` generado** | `ls outputs/checkpoints/model.pkl` |
+| **Baseline calculado** | `outputs/metrics/test_metrics.json` tiene clave `baseline` |
+| **H₁ evaluada** | `test_metrics.json` tiene `hypothesis.H1_sustained` |
+| **Tests pasando** | `pytest tests/test_model.py -v` |
+| **Configuración desacoplada** | Ningún valor hardcodeado en `.py` |
+
+---
+
+## Mensaje central
+
+```{mermaid}
+flowchart LR
+    A["Pregunta<br>científica<br>(Día 1)"] --> B["YAML<br>(config)"]
+    B --> C["Código<br>(src/)"]
+    C --> D["Pipeline<br>(DVC)"]
+    D --> E["Métricas<br>(W&B)"]
+    E --> F{"H₁<br>sostenida?"}
+    F -->|Sí| G["Documentar<br>(Día 4)"]
+    F -->|No| H["Modificar<br>UNA variable<br>→ nuevo run"]
+    H --> B
+```
+
+Un experimento que no sostiene H₁ **no es un fracaso** — es información científica. El siguiente paso es modificar una variable en el YAML y ejecutar de nuevo. Eso es exactamente DoE en práctica.
