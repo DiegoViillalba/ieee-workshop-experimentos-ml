@@ -1,0 +1,31 @@
+{
+  "by_seed": [
+    {
+      "seed": 7,
+      "threshold": 0.4,
+      "accuracy": 0.956140350877193,
+      "recall_malignant": 0.9761904761904762,
+      "auc_roc": 0.9966931216931217
+    },
+    {
+      "seed": 42,
+      "threshold": 0.4,
+      "accuracy": 0.9473684210526315,
+      "recall_malignant": 0.9761904761904762,
+      "auc_roc": 0.9937169312169312
+    },
+    {
+      "seed": 99,
+      "threshold": 0.4,
+      "accuracy": 0.956140350877193,
+      "recall_malignant": 0.9761904761904762,
+      "auc_roc": 0.996362433862434
+    }
+  ],
+  "summary": {
+    "recall_mean": 0.9761904761904762,
+    "recall_std": 0.0,
+    "auc_mean": 0.9955908289241623,
+    "auc_std": 0.0013319054203698266
+  }
+}

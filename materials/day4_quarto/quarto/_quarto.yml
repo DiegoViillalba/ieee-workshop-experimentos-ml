@@ -1,0 +1,47 @@
+# _quarto.yml
+# Configuración del proyecto Quarto — Día 4 Workshop ML
+#
+# Un solo source → múltiples formatos de salida.
+# Modifica el bloque `format` para cambiar cómo se renderiza cada salida.
+#
+# TODO: el instructor añadirá estilos personalizados posteriormente.
+#       Por ahora se usan los temas default de Quarto.
+#
+# TODO: cambiar tema en _quarto.yml
+#       Ejemplo: theme: cosmo  (HTML)  |  theme: moon (RevealJS)
+
+project:
+  type: website
+  output-dir: docs    # para GitHub Pages: push /docs a la rama main
+
+website:
+  title: "Clasificador de cáncer— Workshop ML"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Inicio
+      - href: paper.qmd
+        text: Paper
+      - href: presentation.qmd
+        text: Presentación
+
+# ── Formato HTML ─────────────────────────────────────────────────────────────
+# Legible, claro, para exploración y blog.
+# TODO: simplificar lenguaje para audiencia general.
+format:
+  html:
+    theme: Flatly
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    # TODO: aquí se puede personalizar CSS
+    # css: custom.css
+
+# ── Nota sobre formatos adicionales ──────────────────────────────────────────
+# PDF y RevealJS se configuran por archivo (en el YAML del .qmd).
+# Ver paper.qmd (PDF) y presentation.qmd (RevealJS) para sus configuraciones.
+
+bibliography: references.bib
+lang: es

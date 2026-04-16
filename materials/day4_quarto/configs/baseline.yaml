@@ -1,0 +1,31 @@
+# configs/baseline.yaml
+# Experimento baseline — LogisticRegression con class_weight="balanced"
+#
+# Uso: python scripts/train.py --config configs/baseline.yaml
+#
+# REPLACE: copia este archivo como configs/experiment_01.yaml,
+#          cambia UN parámetro y ejecuta para comparar en W&B.
+
+seed: 42
+
+data:
+  test_size:      0.20
+  val_size:       0.15
+  positive_label: 0     # 0 = maligno (clase positiva de interés clínico)
+
+model:
+  type:         "logistic_regression"
+  class_weight: "balanced"   # ← EJERCICIO 1: cambiar a null
+  solver:       "lbfgs"
+  max_iter:     200
+  C:            1.0           # ← EJERCICIO 2: cambiar a 0.01 o 100.0
+
+metrics:
+  primary:   "recall_malignant"
+  target:    0.90
+  threshold: 0.5
+
+wandb:
+  project: "breast-cancer-classifier"
+  entity:  null
+  tags:    ["baseline", "logistic-regression", "balanced"]

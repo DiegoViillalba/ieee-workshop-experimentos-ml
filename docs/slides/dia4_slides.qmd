@@ -1,0 +1,694 @@
+---
+title: "Día 4: Comunicación de proyectos de ML"
+subtitle: "Quarto como sistema unificado de documentación"
+author: "Workshop IEEE 2026 — Guía del instructor"
+lang: es
+format:
+  revealjs:
+    theme: unam-theme.scss
+    transition: fade
+    slide-number: c/t
+    controls: true
+    progress: true
+    center: false
+    width: 1280
+    height: 720
+    margin: 0.08
+    highlight-style: github
+    code-block-height: 320px
+    footer: "Sesión 4 · Workshop ML · Comunicación de resultados"
+    logo: "Logo_FC_Color.png"
+    fig-align: center
+    mermaid:
+      theme: forest
+
+---
+
+## 1) Orden del día
+
+**Día 4: Comunicación de proyectos de ML.**
+
+Objetivo de la sesión:
+
+- Entender Quarto como sistema de documentación unificado.
+- Generar múltiples formatos desde un solo source.
+- Preparar material para distintas audiencias.
+- Conectar el experimento de los Días 1–3 con su comunicación.
+
+::: {.callout-tip}
+## Mensaje central
+
+Un experimento no existe si no se comunica. El código que nadie lee y los resultados que nadie entiende no tienen impacto. Quarto cierra la brecha entre el pipeline y la audiencia.
+:::
+
+
+---
+
+## 2) El problema central
+
+El pipeline de los Días 1–3 produjo:
+
+- código reproducible ✓
+- métricas documentadas ✓
+- resultados validados ✓
+
+![](https://cdni.iconscout.com/illustration/premium/thumb/el-escritorio-se-ve-desordenado-con-papeles-y-documentos-dispersos-illustration-svg-download-png-12002406.png){.absolute top="10" left="830" width="300" height="300"}
+
+**Un resultado necesita llegar a distintas audiencias:**
+
+::: columns
+::: {.column width="49%"}
+
+
+| Audiencia | Necesita |
+|---|---|
+| Revisor académico | Paper con metodología detallada |
+| Médico clínico | Interpretación práctica |
+| Equipo de producto | Deck ejecutivo |
+| Estudiantes | Presentación didáctica |
+:::
+::: {.column width="49%"}
+::: {.callout-warning}
+## El problema sin Quarto
+
+Típicamente: paper en Latex/Word, slides en PowerPoint, código en Jupyter, README en Markdown.
+
+Cuatro herramientas distintas. Cuatro fuentes de verdad. Cualquier cambio en los resultados requiere actualizar cuatro lugares.
+:::
+:::
+:::
+
+---
+
+## 3) Quarto como sistema
+
+**Un solo source → múltiples salidas.**
+
+::: columns
+::: {.column width="55%"}
+
+```{mermaid}
+flowchart LR
+    A["paper.qmd<br>(source único)"] --> B["HTML<br>blog / exploración"]
+    A --> C["PDF via LaTeX<br>paper académico"]
+    A --> D["RevealJS<br>presentación"]
+    A --> E["Book<br>reporte ejecutivo"]
+```
+
+:::
+::: {.column width="45%"}
+
+**Cambia:**
+- Diseño y navegación  
+- Nivel de detalle del código  
+
+**No cambia:**
+- Contenido y resultados  
+- Referencias
+
+**Comando único:**
+
+```bash
+# Generar todos los formatos
+quarto render paper.qmd
+
+# Solo HTML
+quarto render paper.qmd --to html
+
+# Solo PDF
+quarto render paper.qmd --to pdf
+
+# Preview en vivo
+quarto preview paper.qmd
+```
+:::
+:::
+
+---
+
+
+<iframe src="https://quarto.org/" width="100%" height="720px"></iframe>
+
+---
+
+## 3b) La estructura del proyecto Quarto
+
+```
+quarto/
+├── _quarto.yml          ← configuración global
+├── index.qmd            ← página de inicio (sitio web)
+├── paper.qmd            ← paper principal (HTML + PDF)
+├── presentation.qmd     ← slides para alumnos
+├── slides_instructor.qmd ← este archivo
+├── references.bib        ← bibliografía compartida
+└── sections/
+    ├── intro.qmd
+    ├── methodology.qmd
+    ├── results.qmd
+    └── discussion.qmd
+```
+
+::: {.callout-note}
+## La clave: `{{< include >}}`
+
+```markdown
+# En paper.qmd:
+`{{< include sections/intro.qmd >}}`
+`{{< include sections/methodology.qmd >}}`
+`{{< include sections/results.qmd >}}`
+```
+
+Cada sección vive en su propio archivo. `paper.qmd` las ensambla.
+Esto permite que distintos colaboradores trabajen en distintas secciones
+sin conflictos de merge.
+:::
+
+---
+
+
+## 4) Tipos de salida
+
+::: columns
+::: {.column width="33%"}
+**HTML**
+
+```yaml
+format:
+  html:
+    theme: default
+    toc: true
+    code-fold: true
+```
+
+Para: exploración, blog, GitHub Pages.
+
+Ventajas: interactivo, buscable, accesible.
+:::
+::: {.column width="33%"}
+**PDF (via LaTeX)**
+
+```yaml
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=1in
+    number-sections: true
+```
+
+Para: paper académico, archivo formal.
+
+Requiere: LaTeX instalado (`tinytex`).
+
+```bash
+quarto install tinytex
+```
+:::
+::: {.column width="34%"}
+**RevealJS**
+
+```yaml
+format:
+  revealjs:
+    theme: default
+    slide-number: c/t
+    controls: true
+```
+
+Para: presentaciones en clase o conferencia.
+
+Se renderiza en el navegador — no requiere PowerPoint.
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 4b) Configurar múltiples formatos en un solo archivo
+
+```yaml
+---
+title: "Mi paper"
+format:
+  html:
+    theme: default
+    toc: true
+  pdf:
+    documentclass: article
+  revealjs:
+    theme: default
+---
+```
+
+::: {.callout-tip}
+## Contenido condicional por formato
+
+```markdown
+::: {.content-visible when-format="html"}
+Este bloque solo aparece en HTML.
+:::
+
+::: {.content-visible when-format="pdf"}
+Este bloque solo aparece en PDF.
+:::
+```
+
+Útil para: incluir figuras interactivas en HTML y estáticas en PDF, o simplificar el texto según la audiencia.
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+
+## 5) Estructura de un paper científico
+
+::: columns
+::: {.column width="50%"}
+**Las 8 secciones estándar:**
+
+1. **Introducción** — motivación y pregunta
+2. **Pregunta científica** — hipótesis falsable
+3. **Datos** — descripción y preprocesamiento
+4. **Metodología** — modelos y métricas
+5. **Resultados** — tablas y figuras
+6. **Validación** — estabilidad y robustez
+7. **Discusión** — interpretación y limitaciones
+8. **Conclusión** — respuesta a la pregunta
+
+En Quarto: cada sección en su propio `.qmd`.
+:::
+::: {.column width="50%"}
+**En nuestro paper:**
+
+```yaml
+# paper.qmd
+´{{< include sections/intro.qmd >}}´
+´{{< include sections/methodology.qmd >}}´
+´{{< include sections/results.qmd >}}´
+´{{< include sections/discussion.qmd >}}´
+
+# Conclusión {#sec-conclusion}
+...
+
+# Referencias
+::: {#refs}
+:::
+```
+
+Las referencias se insertan automáticamente desde `references.bib`.
+:::
+:::
+
+# TODO: explicar esto en clase
+
+
+---
+
+## 6) Reproducibilidad en documentos
+
+Un documento reproducible integra código y resultados en el mismo archivo.
+
+::: columns
+::: {.column width="55%"}
+**Celda de código en el paper:**
+
+```{{python}}
+#| label: tbl-results
+#| tbl-cap: "Métricas en el test set"
+#| echo: false
+
+import json
+with open("../outputs/metrics/test_metrics.json") as f:
+    data = json.load(f)
+# ...genera la tabla automáticamente...
+```
+
+Cuando se ejecuta `quarto render`:
+
+1. Python corre el código
+2. La tabla se genera con los datos reales
+3. Se inserta en el documento
+
+Si los resultados del pipeline cambian, `quarto render` actualiza el documento automáticamente.
+:::
+::: {.column width="45%"}
+**Opciones de ejecución:**
+
+```yaml
+execute:
+  echo: true      # mostrar código
+  eval: true      # ejecutar código
+  warning: false  # ocultar warnings
+  cache: true     # cachear outputs
+```
+
+**Por bloque:**
+
+```yaml
+#| echo: false    # no mostrar código
+#| eval: false    # no ejecutar
+#| fig-cap: "..."
+```
+
+::: {.callout-note}
+`echo: false` + `eval: true` = figura o tabla sin código visible. Ideal para papers y presentaciones.
+:::
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 7) Diferentes audiencias
+
+El mismo experimento, tres versiones:
+
+```{mermaid}
+flowchart TD
+    A["sections/results.qmd<br>(contenido central)"] --> B["paper.qmd<br>Académico<br>Todo el detalle técnico"]
+    A --> C["presentation.qmd<br>Clase / Conferencia<br>Narrativa + figuras"]
+    A --> D["index.qmd<br>Blog / General<br>Lenguaje simple"]
+```
+
+::: {.callout-important}
+## Lo que cambia para cada audiencia
+
+| | Académico | Clase | General |
+|---|---|---|---|
+| Ecuaciones | Sí | Pocas | No |
+| Código | Opcional | Sí (didáctico) | No |
+| Referencias | Todas | Pocas | Ninguna |
+| Longitud | Largo | Medio | Corto |
+| Vocabulario | Técnico | Técnico + explicado | Simple |
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 7b) Texto para audiencia general
+
+::: columns
+::: {.column width="50%"}
+**Versión académica:**
+
+> "El modelo logró recall$_{\text{maligno}}$ = 0.976 sobre el conjunto de prueba con umbral de decisión θ = 0.40, superando significativamente al clasificador de mayoría (recall = 0.000)."
+
+**Versión general:**
+
+> "De cada 100 pacientes con cáncer real, el modelo identificó correctamente a 97 de ellas. Solo dejó pasar 3."
+
+<!-- TODO: simplificar lenguaje -->
+:::
+::: {.column width="50%"}
+**En Quarto, contenido condicional:**
+
+```markdown
+::: {.content-visible when-format="html"}
+El modelo detecta el 97.6% de los
+casos de cáncer. Solo deja pasar
+2.4% — aproximadamente 1 de cada 42
+mujeres con diagnóstico maligno.
+:::
+
+::: {.content-visible when-format="pdf"}
+El modelo obtiene recall = 0.976
+con AUC-ROC = 0.994, sosteniendo H₁
+bajo los criterios establecidos en
+la sección de metodología.
+:::
+```
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 8) Exploración de Quarto — actividad en clase
+
+Los alumnos modifican documentos existentes y observan el resultado.
+
+::: columns
+::: {.column width="50%"}
+**Ejercicio 1 — cambiar formato:**
+
+```yaml
+# En presentation.qmd, cambiar:
+format:
+  revealjs:
+    theme: moon       # era: default
+    transition: zoom  # era: slide
+```
+
+Ejecutar: `quarto preview presentation.qmd`
+
+**Ejercicio 2 — ocultar código:**
+
+```yaml
+# En paper.qmd, cambiar:
+execute:
+  echo: false   # era: true
+```
+
+¿Qué cambia en el output?
+:::
+::: {.column width="50%"}
+**Ejercicio 3 — agregar sección:**
+
+Crear `sections/appendix.qmd`:
+
+```markdown
+# Apéndice: configuración completa
+
+\`\`\`yaml
+# configs/baseline.yaml
+seed: 42
+model:
+  type: logistic_regression
+  C: 1.0
+  class_weight: balanced
+\`\`\`
+```
+
+Agregar en `paper.qmd`:
+
+```markdown
+´{{< include sections/appendix.qmd >}}´
+```
+
+**Ejercicio 4 — generar PDF:**
+
+```bash
+quarto render paper.qmd --to pdf
+```
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 9) Estilos y temas
+
+::: columns
+::: {.column width="50%"}
+**Temas de HTML (Bootstrap):**
+
+```yaml
+format:
+  html:
+    theme: cosmo    # limpio, moderno
+    # theme: flatly  # profesional
+    # theme: darkly  # oscuro
+    # theme: pulse   # colorido
+```
+
+Ver todos: `quarto.org/docs/output-formats/html-themes`
+
+**Temas de RevealJS:**
+
+```yaml
+format:
+  revealjs:
+    theme: default  # blanco
+    # theme: moon   # oscuro
+    # theme: sky    # azul
+    # theme: serif  # tipográfico
+```
+:::
+::: {.column width="50%"}
+**CSS personalizado (conceptual):**
+
+```yaml
+format:
+  html:
+    css: custom.css
+  revealjs:
+    theme: [default, custom.scss]
+```
+
+```css
+/* custom.css */
+.callout-tip {
+  border-left: 4px solid #1a6633;
+}
+h1, h2 {
+  color: #2166ac;
+}
+```
+
+<!-- TODO: aquí se puede personalizar CSS -->
+<!-- TODO: el instructor añadirá estilos personalizados posteriormente -->
+
+::: {.callout-note}
+Hoy usamos temas default. El CSS se añade en la siguiente iteración del documento.
+:::
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 10) Publicación en GitHub Pages
+
+```bash
+# 1. Asegurarse de que _quarto.yml tiene:
+#    output-dir: docs
+
+# 2. Renderizar el proyecto completo
+quarto render
+
+# 3. Verificar que /docs existe y tiene index.html
+ls docs/
+
+# 4. Commit y push
+git add docs/
+git commit -m "docs: generar sitio Quarto"
+git push origin main
+
+# 5. En GitHub: Settings → Pages → Source: main branch, /docs folder
+
+# URL resultante:
+# https://usuario.github.io/breast-cancer-classifier/
+```
+
+::: {.callout-tip}
+## Flujo recomendado
+
+```bash
+# Durante el desarrollo:
+quarto preview    # servidor local en localhost:4567
+
+# Para publicar:
+quarto render && git add docs/ && git commit -m "docs: update"
+```
+
+<!-- TODO: publicar sitio -->
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 11) Actividad: construir documento base
+
+Cada alumno construye su propio documento Quarto en 20 minutos.
+
+::: columns
+::: {.column width="50%"}
+**Paso 1 (5 min) — estructura:**
+
+```bash
+mkdir mi_quarto
+cd mi_quarto
+quarto create project website
+```
+
+**Paso 2 (5 min) — agregar contenido:**
+
+Editar `index.qmd` con:
+- Título del experimento
+- Pregunta científica
+- Un bloque de código Python que cargue los datos
+
+**Paso 3 (5 min) — renderizar:**
+
+```bash
+quarto preview
+```
+:::
+::: {.column width="50%"}
+**Paso 4 (5 min) — explorar:**
+
+Cambiar el tema en `_quarto.yml`:
+
+```yaml
+format:
+  html:
+    theme: cosmo
+```
+
+Agregar una sección de resultados con placeholder:
+
+```markdown
+## Resultados
+
+<!-- TODO: integrar resultados reales del pipeline -->
+
+| Métrica | Valor |
+|---|---|
+| Recall | 0.976 |
+| AUC-ROC | 0.994 |
+```
+
+**Observar:** el mismo `.qmd` genera HTML, PDF y slides con un solo comando.
+:::
+:::
+
+# TODO: explicar esto en clase
+
+---
+
+## 12) Cierre
+
+**Comunicar es parte del proceso científico.**
+
+Un experimento que no se comunica no existe — no puede ser reproducido,
+criticado, mejorado ni aplicado.
+
+::: columns
+::: {.column width="55%"}
+**Lo que construimos en el Día 4:**
+
+- [ ] Estructura Quarto con múltiples formatos
+- [ ] Paper base con secciones definidas
+- [ ] Presentación para clase y conferencia
+- [ ] Sitio publicable en GitHub Pages
+- [ ] Un solo source para todas las audiencias
+
+**Lo que aprendimos:**
+
+- `quarto render` → múltiples outputs
+- `{{< include >}}` → modularidad
+- `execute: echo/eval` → control de código
+- Temas → personalización sin reescribir contenido
+:::
+::: {.column width="45%"}
+::: {.callout-important}
+## El ciclo completo del workshop
+
+1. **Día 1:** Diseño experimental
+2. **Día 2:** Pipeline reproducible
+3. **Día 3:** Evaluación y validación
+4. **Día 4:** Comunicación
+
+Cada día construyó sobre el anterior. El experimento ahora existe en tres dimensiones: código, evidencia y comunicación.
+:::
+:::
+:::
+
+# TODO: explicar esto en clase

@@ -12,7 +12,7 @@ $cosmos-accent: #4fb6d6;
 
 // 2. Variables nativas de Quarto
 $font-family-sans-serif: "Gotham", "Helvetica Neue", Arial, sans-serif;
-$presentation-font-size-root: 34px;
+$presentation-font-size-root: 30px;
 
 $body-bg: #ffffff;
 $body-color: #2f4f63;
@@ -25,6 +25,44 @@ $presentation-heading-color: $cosmos-blue;
 $code-color: $cosmos-accent;
 
 /*-- scss:rules --*/
+
+/* ══════════════════════════════════════════════════════
+   LOGO ADAPTATIVO
+   ══════════════════════════════════════════════════════ */
+
+/* 1. Comportamiento NORMAL (Presentación interactiva) */
+// .reveal .slide-logo {
+//   height: 5vh !important;
+//   max-height: 5vh !important;
+//   width: auto !important;
+// }
+
+// /* Logo grande en la portada durante la presentación */
+// .reveal:has(section#title-slide.present) .slide-logo {
+//   height: 12vh !important;
+//   max-height: 12vh !important;
+//   width: auto !important;
+//   bottom: 7% !important;
+//   right: 5% !important;
+// }
+
+// /* 2. Comportamiento para EXPORTACIÓN (PDF / Print) */
+// @media print {
+//   /* Oculta el logo en todas las diapositivas al imprimir */
+//   .reveal .slide-logo {
+//     display: none !important;
+//   }
+
+//   /* Lo vuelve a mostrar ÚNICAMENTE en la de título */
+//   /* Nota: En la exportación, Quarto usa la clase .pdf-page */
+//   .pdf-page:has(#title-slide) .slide-logo {
+//     display: block !important;
+//     height: 12vh !important;
+//     bottom: 7% !important;
+//     right: 5% !important;
+//   }
+// }
+
 
 /* ══════════════════════════════════════════════════════
    ESTILOS BASE

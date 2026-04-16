@@ -1,0 +1,89 @@
+# Metodología {#sec-methodology}
+
+<!-- TODO: completar contenido en versión final -->
+
+## Dataset
+
+Utilizamos `sklearn.datasets.load_breast_cancer`, que contiene 569 muestras
+con 30 características morfológicas numéricas y una etiqueta binaria:
+0 = maligno (212 casos, 37.3%) y 1 = benigno (357 casos, 62.7%).
+
+```{python}
+#| label: tbl-dataset
+#| tbl-cap: "Resumen del dataset Breast Cancer Wisconsin"
+#| echo: true
+
+from sklearn.datasets import load_breast_cancer
+import pandas as pd
+
+bc = load_breast_cancer()
+summary = pd.DataFrame({
+    "Split":       ["Train", "Val", "Test", "Total"],
+    "N muestras":  [384, 68, 114, 569],
+    "% maligno":   ["37.2%", "37.1%", "37.7%", "37.3%"],
+})
+summary
+```
+
+La división es estratificada (`stratify=y`) para garantizar proporciones
+de clase similares en los tres splits [@pineau2021reproducibility].
+
+## Preprocesamiento
+
+Todas las características se escalan con `StandardScaler`, ajustado
+**exclusivamente** sobre el training set para evitar data leakage
+[@hastie2009elements].
+
+## Modelos
+
+<!-- TODO: desarrollar descripción de modelos -->
+
+Se comparan dos familias:
+
+**Logistic Regression** — modelo interpretable con regularización L2
+y ponderación de clases (`class_weight="balanced"`).
+
+**MLPClassifier** — red neuronal de una capa oculta, tratada como
+modelo de mayor capacidad para comparación.
+
+```yaml
+# Configuración baseline (configs/baseline.yaml)
+model:
+  type:         "logistic_regression"
+  class_weight: "balanced"
+  C:            1.0
+  max_iter:     200
+```
+
+## Métricas de evaluación
+
+<!-- TODO: justificar selección de métricas -->
+
+La métrica primaria es **recall de la clase maligna**, dado el costo
+asimétrico de los errores en diagnóstico clínico: un falso negativo
+(cáncer no detectado) tiene consecuencias graves, mientras que un falso
+positivo genera un estudio adicional.
+
+$$\text{recall}_{\text{maligno}} = \frac{TP}{TP + FN}$$
+
+Como métrica secundaria se usa **AUC-ROC**, que mide la capacidad
+discriminativa independientemente del umbral de decisión.
+
+## Hipótesis
+
+**H₀:** $\text{recall}_{\text{maligno}} < 0.90$ o $\text{AUC-ROC} \leq 0.50$
+
+**H₁:** $\text{recall}_{\text{maligno}} \geq 0.90$ **y** $\text{AUC-ROC} > 0.50$
+
+## Validación
+
+<!-- TODO: describir protocolo de validación -->
+
+Para garantizar robustez del resultado se realizan:
+
+1. Análisis de estabilidad con 3 seeds (7, 42, 99).
+2. Barrido de hiperparámetros con 9 configuraciones por modelo.
+3. Threshold tuning en el val set (umbral óptimo: 0.4).
+4. Diagnóstico train/test para detectar overfitting.
+
+<!-- TODO: integrar resultados reales del pipeline -->

@@ -1,0 +1,34 @@
+# Introducción {#sec-intro}
+
+<!-- TODO: completar contenido en versión final -->
+
+El diagnóstico temprano de cáncer de mama es uno de los factores más
+determinantes en la supervivencia de las pacientes. Los modelos de
+aprendizaje automático ofrecen una vía complementaria para asistir la
+interpretación de imágenes y datos clínicos [@street1993nuclear].
+
+Este trabajo presenta un experimento reproducible para clasificar tumores
+mamarios como malignos o benignos a partir de características morfológicas
+extraídas computacionalmente, con énfasis en el proceso experimental
+más que en la optimización de métricas.
+
+## Motivación
+
+<!-- TODO: desarrollar motivación clínica -->
+
+El dataset Breast Cancer Wisconsin [@street1993nuclear;
+@mangasarian1995breast] contiene mediciones de características del núcleo
+celular obtenidas a partir de imágenes digitalizadas de biopsias con aguja
+fina (FNA). Es un benchmark establecido que permite ilustrar los principios
+de diseño experimental en ML sin requerir infraestructura de GPU.
+
+## Contribuciones
+
+<!-- TODO: enumerar contribuciones específicas -->
+
+Este trabajo:
+
+1. Formula una pregunta científica falsable con criterio cuantitativo.
+2. Implementa un pipeline reproducible usando DVC y Weights & Biases.
+3. Compara dos familias de modelos con análisis de estabilidad.
+4. Documenta todo el proceso con Quarto para múltiples audiencias.

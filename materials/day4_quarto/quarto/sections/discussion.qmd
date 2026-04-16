@@ -1,0 +1,59 @@
+# Discusión {#sec-discussion}
+
+<!-- TODO: completar contenido en versión final -->
+
+## Interpretación del modelo
+
+La regresión logística permite inspeccionar los coeficientes directamente.
+Los tres features más influyentes son `radius error`, `worst texture` y
+`worst concave points`, todos con coeficiente negativo: valores más altos
+indican mayor probabilidad de malignidad. Este patrón es consistente con
+el conocimiento médico sobre morfología tumoral.
+
+<!-- TODO: integrar gráfica de coeficientes -->
+
+## Limitaciones
+
+<!-- TODO: desarrollar limitaciones -->
+
+1. **Tamaño del dataset:** 569 muestras es pequeño para generalizar a
+   nuevas poblaciones. Los resultados son válidos como prueba de concepto.
+
+2. **Distribución de clases:** el desbalance (37/63) justifica el uso de
+   `class_weight="balanced"`, pero en producción el umbral óptimo
+   dependería de las tasas de prevalencia reales de la población objetivo.
+
+3. **Validación externa:** el modelo no ha sido evaluado en datos de otra
+   institución o cohorte demográfica diferente.
+
+4. **Explicabilidad regulatoria:** en muchos contextos clínicos se requieren
+   métodos de explicabilidad certificados (GDPR, FDA) que van más allá del
+   análisis de coeficientes.
+
+## Comparación de modelos
+
+El MLP no supera de forma estadísticamente relevante a la regresión logística
+en este dataset. Esto es consistente con la literatura [@hastie2009elements]:
+para datos tabulares de baja dimensión, los modelos lineales suelen ser
+competitivos con métodos más complejos.
+
+Elegir MLP añadiría opacidad sin ganancia medible en recall, lo que no
+está justificado para un sistema de soporte a decisión clínica.
+
+## Implicaciones prácticas
+
+<!-- TODO: desarrollar implicaciones -->
+
+Un modelo con recall = 0.976 significaría, en una cohorte de 1000 mujeres
+con 370 casos malignos, no detectar aproximadamente 9 casos. Según el
+contexto clínico, esto puede ser aceptable como herramienta de triaje
+inicial, pero no como diagnóstico definitivo.
+
+## Trabajo futuro
+
+<!-- TODO: definir trabajo futuro -->
+
+- Validación en dataset externo.
+- Análisis de equidad por subgrupos demográficos.
+- Calibración de probabilidades para uso clínico.
+- Integración con sistemas de gestión de imágenes (PACS/RIS).

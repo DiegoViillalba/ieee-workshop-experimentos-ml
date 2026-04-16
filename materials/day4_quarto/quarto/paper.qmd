@@ -1,0 +1,84 @@
+---
+title: "Clasificación de tumores mamarios con regresión logística: un experimento reproducible"
+subtitle: "Workshop IEEE 2026 — Día 4"
+date: today
+author:
+  - name: "Autor Placeholder"
+    affiliation: "Institución Placeholder"
+    email: "autor@ejemplo.com"
+abstract: |
+  Presentamos un experimento reproducible para la clasificación binaria
+  de tumores mamarios utilizando el dataset Breast Cancer Wisconsin.
+  Empleando regresión logística con ponderación de clases, logramos
+  recall = 0.976 y AUC-ROC = 0.994 sobre el conjunto de prueba,
+  sosteniendo la hipótesis H₁ (recall ≥ 0.90). El experimento utiliza
+  un pipeline reproducible basado en DVC y Weights & Biases, y documenta
+  el proceso completo con Quarto para múltiples audiencias.
+
+  <!-- TODO: completar abstract en versión final -->
+
+keywords: ["machine learning", "breast cancer", "logistic regression",
+           "reproducibility", "classification"]
+bibliography: references.bib
+
+format:
+  html:
+    theme: Flatly
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    # TODO: aquí se puede personalizar CSS
+    # css: custom.css
+  pdf:
+    documentclass: article
+    geometry: margin=1in
+    number-sections: true
+    toc: true
+    # TODO: el instructor añadirá estilos personalizados posteriormente
+
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{python}
+#| label: setup
+#| echo: false
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+{{< include sections/intro.qmd >}}
+
+{{< include sections/methodology.qmd >}}
+
+{{< include sections/results.qmd >}}
+
+{{< include sections/discussion.qmd >}}
+
+# Conclusión {#sec-conclusion}
+
+<!-- TODO: completar conclusión en versión final -->
+
+Este trabajo demuestra que un modelo de regresión logística con ponderación
+de clases puede alcanzar recall clínicamente relevante (≥ 0.90) en el
+dataset Breast Cancer Wisconsin, con resultados estables bajo variación
+de semillas. El pipeline reproducible implementado permite replicar
+exactamente los resultados y extender el experimento de forma controlada.
+
+La comparación con MLP muestra que mayor complejidad no implica mayor
+rendimiento en este contexto, reforzando el valor de modelos interpretables
+como punto de partida en problemas de diagnóstico médico.
+
+La estructura de documentación con Quarto permite comunicar el mismo
+experimento a audiencias diversas (papel académico, presentación, blog)
+desde un único source, reduciendo la fricción entre investigación y
+comunicación.
+
+# Referencias {.unnumbered}
+
+::: {#refs}
+:::

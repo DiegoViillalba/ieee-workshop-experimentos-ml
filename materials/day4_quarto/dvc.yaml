@@ -1,0 +1,97 @@
+# dvc.yaml
+# Pipeline reproducible — Workshop ML Día 2
+#
+# Ejecutar el pipeline completo:
+#   dvc repro
+#
+# Ver el grafo:
+#   dvc dag
+#
+# Ver diferencias entre experimentos:
+#   dvc params diff
+#   dvc metrics diff
+#
+# TODO: entender las dependencias del pipeline.
+#       Si modificas src/data/dataset.py, DVC detecta el cambio y re-ejecuta
+#       prepare_data → train → evaluate en cascada.
+#       ¿Cuál es la ventaja de esto sobre ejecutar los scripts manualmente?
+#
+# REPLACE: modifica las etapas para agregar nuevos pasos al pipeline.
+
+stages:
+
+  # ── Etapa 1: preparar datos ────────────────────────────────────────────────
+  prepare_data:
+    cmd: >
+      python -c "
+      import sys; sys.path.insert(0, '.');
+      from src.data.dataset import load_and_split;
+      load_and_split(save_dir='data/processed')
+      "
+    deps:
+      - src/data/dataset.py
+      - configs/baseline.yaml
+    outs:
+      - data/processed/X_train.npy
+      - data/processed/X_val.npy
+      - data/processed/X_test.npy
+      - data/processed/y_train.npy
+      - data/processed/y_val.npy
+      - data/processed/y_test.npy
+    params:
+      - configs/baseline.yaml:
+          - seed
+          - data.test_size
+          - data.val_size
+
+  # ── Etapa 2: entrenamiento ─────────────────────────────────────────────────
+  train:
+    cmd: python scripts/train.py --config configs/baseline.yaml --no-wandb
+    deps:
+      - scripts/train.py
+      - src/models/logistic.py
+      - src/training/config.py
+      - src/training/trainer.py
+      - configs/baseline.yaml
+      - data/processed/X_train.npy
+      - data/processed/y_train.npy
+    outs:
+      - outputs/checkpoints/model.pkl
+    metrics:
+      - outputs/metrics/val_metrics.json:
+          cache: false
+    params:
+      - configs/baseline.yaml:
+          - seed
+          - model.type
+          - model.class_weight
+          - model.C
+          - model.max_iter
+    # REPLACE: modifica las dependencias si agregas nuevos módulos.
+
+  # ── Etapa 3: evaluación ────────────────────────────────────────────────────
+  evaluate:
+    cmd: >
+      python scripts/evaluate.py
+      --config configs/baseline.yaml
+      --checkpoint outputs/checkpoints/model.pkl
+      --no-wandb
+    deps:
+      - scripts/evaluate.py
+      - src/evaluation/metrics.py
+      - src/models/logistic.py
+      - configs/baseline.yaml
+      - outputs/checkpoints/model.pkl
+      - data/processed/X_test.npy
+      - data/processed/y_test.npy
+    outs:
+      - outputs/metrics/confusion_matrix.png:
+          cache: false
+      - outputs/metrics/roc_pr_curves.png:
+          cache: false
+    metrics:
+      - outputs/metrics/test_metrics.json:
+          cache: false
+    # TODO: entender dependencias del pipeline.
+    #       evaluate depende del checkpoint generado por train.
+    #       DVC garantiza que siempre se evalúa el modelo del mismo run.

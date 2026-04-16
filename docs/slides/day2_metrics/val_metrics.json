@@ -1,0 +1,10 @@
+{
+  "metrics": {
+    "val/accuracy": 0.9767441860465116,
+    "val/recall": 0.96875,
+    "val/precision": 0.96875,
+    "val/f1": 0.96875,
+    "val/auc": 0.9965277777777778
+  },
+  "tuned_threshold": 0.4
+}

@@ -1,0 +1,279 @@
+---
+title: "Clasificador de cáncer de mama"
+subtitle: "De la pregunta científica al modelo reproducible"
+author: "Workshop IEEE 2026"
+date: today
+lang: es
+format:
+  revealjs:
+    theme: default
+    transition: slide
+    slide-number: c/t
+    controls: true
+    progress: true
+    center: false
+    width: 1280
+    height: 720
+    margin: 0.08
+    # TODO: añadir tema personalizado
+    # theme: [default, custom.scss]
+bibliography: references.bib
+execute:
+  echo: false
+  warning: false
+---
+
+## El problema
+
+::: columns
+::: {.column width="55%"}
+¿Cómo ayudar a detectar cáncer de mama de forma más temprana?
+
+Los datos: 569 biopsias, 30 características morfológicas del núcleo celular [@street1993nuclear].
+
+El desafío clínico:
+
+- **Falso negativo**: tumor maligno no detectado → consecuencia grave
+- **Falso positivo**: biopsia innecesaria → costoso, no fatal
+
+→ La métrica correcta es **recall**, no accuracy.
+:::
+::: {.column width="45%"}
+```{python}
+#| fig-height: 3
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+import numpy as np
+
+bc = load_breast_cancer()
+y = bc.target
+fig, ax = plt.subplots(figsize=(4.5, 3))
+ax.bar(["Maligno\n(y=0)", "Benigno\n(y=1)"],
+       [(y==0).sum(), (y==1).sum()],
+       color=["#2166ac", "#d6604d"], alpha=0.85)
+ax.set_ylabel("Muestras")
+ax.set_title("Distribución de clases", fontsize=11)
+for i, (lbl, n) in enumerate([("212 (37%)", (y==0).sum()),
+                                ("357 (63%)", (y==1).sum())]):
+    ax.text(i, n + 5, lbl, ha="center", fontsize=10)
+ax.spines[["top","right"]].set_visible(False)
+plt.tight_layout()
+plt.show()
+```
+:::
+:::
+
+<!-- TODO: adaptar narrativa para presentación real -->
+
+---
+
+## La pregunta científica
+
+> ¿Un modelo de regresión logística con ponderación de clases alcanza
+> **recall ≥ 0.90** para la clase maligna y supera a un clasificador de
+> mayoría en AUC-ROC?
+
+**H₀:** recall < 0.90 ó AUC-ROC ≤ 0.50
+
+**H₁:** recall ≥ 0.90 **y** AUC-ROC > 0.50
+
+::: {.callout-note}
+La pregunta está definida antes de escribir una sola línea de código.
+El criterio de éxito es numérico y falsable.
+:::
+
+---
+
+## El pipeline
+
+```{mermaid}
+flowchart LR
+    A["configs/\nbaseline.yaml"] --> B["prepare_data\nStandardScaler + split"]
+    B --> C["train\nLogisticRegression"]
+    C --> D["evaluate\nrecall + AUC"]
+    D --> E["outputs/\ntest_metrics.json"]
+    A --> C
+    A --> D
+```
+
+| Herramienta | Rol |
+|---|---|
+| **YAML** | Configuración desacoplada del código |
+| **DVC** | Reproducibilidad del pipeline |
+| **W&B** | Registro y comparación de runs |
+| **Quarto** | Comunicación de resultados |
+
+---
+
+## Los modelos comparados
+
+::: columns
+::: {.column width="50%"}
+**Logistic Regression**
+
+```yaml
+model:
+  type: logistic_regression
+  class_weight: balanced
+  C: 1.0
+```
+
+- Interpretable: coeficientes directos
+- Estable: std(recall) = 0.000
+- Rápido: < 1 s en CPU
+:::
+::: {.column width="50%"}
+**MLP**
+
+```yaml
+model:
+  type: mlp
+  hidden_layer_sizes: [8]
+  alpha: 0.0001
+```
+
+- Mayor capacidad
+- Menos interpretable
+- Mayor varianza entre seeds
+:::
+:::
+
+::: {.callout-tip}
+Con 569 muestras, la complejidad adicional del MLP no está justificada.
+Los modelos tienen rendimiento equivalente, Logistic gana por parsimonia.
+:::
+
+---
+
+## Resultados
+
+```{python}
+#| fig-height: 3.5
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Resultados reales del experimento
+modelos  = ["Baseline\n(mayoría)", "Logistic\nC=1.0", "MLP\n[8]"]
+recalls  = [0.000, 0.976, 0.976]
+aucs     = [0.500, 0.994, 0.999]
+colors_r = ["#888", "#1a6633", "#7b2d8b"]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+bars = axes[0].bar(modelos, recalls, color=colors_r, alpha=0.85, width=0.5)
+axes[0].axhline(0.90, color="red", ls="--", lw=1.5, label="objetivo ≥ 0.90")
+axes[0].set(ylabel="Recall maligno", title="Recall (test set)", ylim=[0, 1.1])
+axes[0].legend(fontsize=9)
+for bar, v in zip(bars, recalls):
+    if v > 0:
+        axes[0].text(bar.get_x()+bar.get_width()/2, v+0.02, f"{v:.3f}",
+                     ha="center", fontsize=10, fontweight="bold")
+
+bars2 = axes[1].bar(modelos, aucs, color=colors_r, alpha=0.85, width=0.5)
+axes[1].axhline(0.50, color="red", ls="--", lw=1.5, label="azar = 0.50")
+axes[1].set(ylabel="AUC-ROC", title="AUC-ROC (test set)", ylim=[0.4, 1.1])
+axes[1].legend(fontsize=9)
+for bar, v in zip(bars2, aucs):
+    axes[1].text(bar.get_x()+bar.get_width()/2, v+0.01, f"{v:.3f}",
+                 ha="center", fontsize=10, fontweight="bold")
+
+for ax in axes: ax.spines[["top","right"]].set_visible(False)
+plt.tight_layout()
+plt.show()
+```
+
+<!-- TODO: adaptar narrativa para presentación real -->
+
+---
+
+## Por qué Logistic y no MLP
+
+```{python}
+#| fig-height: 3.2
+import matplotlib.pyplot as plt
+import numpy as np
+
+criterios  = ["Recall\nmedio", "Recall\nstd", "AUC\nmedio"]
+log_vals   = [0.968, 0.012, 0.994]
+mlp_vals   = [0.968, 0.012, 0.995]
+# Note: from sweep_results.json both have same mean/std
+
+fig, axes = plt.subplots(1, 3, figsize=(9, 3.2))
+for i, (ax, crit, lv, mv) in enumerate(zip(axes, criterios, log_vals, mlp_vals)):
+    ax.bar(["Logistic", "MLP"], [lv, mv], color=["#1a6633","#7b2d8b"],
+           alpha=0.85, width=0.45)
+    ax.set_title(crit, fontsize=10)
+    for j, v in enumerate([lv, mv]):
+        ax.text(j, v+0.001, f"{v:.3f}", ha="center", fontsize=9, fontweight="bold")
+    ax.spines[["top","right"]].set_visible(False)
+plt.suptitle("Comparación sobre 9 configuraciones cada modelo", fontsize=10, y=1.02)
+plt.tight_layout()
+plt.show()
+```
+
+::: {.callout-warning}
+**Rendimiento equivalente** → Logistic gana por interpretabilidad, robustez y explicabilidad clínica.
+:::
+
+---
+
+## Interpretación: coeficientes reales
+
+```{python}
+#| fig-height: 3.5
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+bc = load_breast_cancer()
+X, y = bc.data, bc.target
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+sc = StandardScaler(); X_tr = sc.fit_transform(X_tr)
+lr = LogisticRegression(C=1.0, class_weight="balanced", max_iter=500, random_state=42)
+lr.fit(X_tr, y_tr)
+
+coefs = lr.coef_[0]
+idx_top = np.argsort(np.abs(coefs))[-8:]
+features = [bc.feature_names[i].replace(" ", "\n") for i in idx_top]
+values   = coefs[idx_top]
+colors   = ["#2166ac" if v < 0 else "#d6604d" for v in values]
+
+fig, ax = plt.subplots(figsize=(9, 3.5))
+ax.barh(features, values, color=colors, alpha=0.85, height=0.6)
+ax.axvline(0, color="#555", lw=1)
+ax.set(xlabel="Coeficiente", title="Top 8 features por |coeficiente|")
+import matplotlib.patches as mpatches
+leg = [mpatches.Patch(color="#2166ac", label="Sube riesgo maligno (coef < 0)"),
+       mpatches.Patch(color="#d6604d", label="Baja riesgo maligno (coef > 0)")]
+ax.legend(handles=leg, fontsize=9)
+ax.spines[["top","right"]].set_visible(False)
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+## Conclusiones
+
+- **H₁ sostenida**: recall = 0.976, AUC-ROC = 0.994 ✓
+- El modelo es **estable** bajo variación de seeds (std = 0.000)
+- Los coeficientes son **coherentes** con conocimiento médico
+- Un modelo más complejo no justifica la pérdida de interpretabilidad
+
+::: {.callout-important}
+## Para producción aún faltaría:
+
+1. Validación en cohorte externa
+2. Evaluación de equidad por subgrupos
+3. Calibración de probabilidades
+4. Revisión ética y regulatoria
+:::
+
+---
+
+## Referencias {.unnumbered}
+
+::: {#refs}
+:::

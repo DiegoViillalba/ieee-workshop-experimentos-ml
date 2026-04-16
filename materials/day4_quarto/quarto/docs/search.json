@@ -1,0 +1,639 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Clasificador de cáncer de mama",
+    "section": "",
+    "text": "Este sitio documenta el experimento completo desarrollado durante el Workshop “De la idea al experimento” (Días 1–4).\nPartimos de una pregunta científica, construimos un pipeline reproducible, entrenamos y validamos dos modelos, y comunicamos los resultados en múltiples formatos desde un único documento fuente."
+  },
+  {
+    "objectID": "index.html#acerca-de-este-proyecto",
+    "href": "index.html#acerca-de-este-proyecto",
+    "title": "Clasificador de cáncer de mama",
+    "section": "",
+    "text": "Este sitio documenta el experimento completo desarrollado durante el Workshop “De la idea al experimento” (Días 1–4).\nPartimos de una pregunta científica, construimos un pipeline reproducible, entrenamos y validamos dos modelos, y comunicamos los resultados en múltiples formatos desde un único documento fuente."
+  },
+  {
+    "objectID": "index.html#pregunta-científica",
+    "href": "index.html#pregunta-científica",
+    "title": "Clasificador de cáncer de mama",
+    "section": "2 Pregunta científica",
+    "text": "2 Pregunta científica\n\n¿Un modelo de regresión logística con ponderación de clases alcanza recall ≥ 0.90 para la clase maligna y supera a un clasificador de mayoría en AUC-ROC?\n\nResultado: H₁ sostenida. Recall = 0.976, AUC-ROC = 0.994."
+  },
+  {
+    "objectID": "index.html#documentos-disponibles",
+    "href": "index.html#documentos-disponibles",
+    "title": "Clasificador de cáncer de mama",
+    "section": "3 Documentos disponibles",
+    "text": "3 Documentos disponibles\n\n\n\nDocumento\nFormato\nAudiencia\n\n\n\n\nPaper\nHTML / PDF\nAcadémica\n\n\nPresentación\nRevealJS\nClase / Conferencia\n\n\nDescripción general\nMarkdown\nInstructor"
+  },
+  {
+    "objectID": "index.html#estructura-del-proyecto",
+    "href": "index.html#estructura-del-proyecto",
+    "title": "Clasificador de cáncer de mama",
+    "section": "4 Estructura del proyecto",
+    "text": "4 Estructura del proyecto\nbreast-cancer-classifier/\n├── configs/           ← hiperparámetros (YAML)\n├── src/               ← código del pipeline\n├── scripts/           ← entrenamiento y evaluación\n├── outputs/           ← métricas, checkpoints, figuras\n├── quarto/            ← documentación (este sitio)\n└── docs/              ← guía del instructor"
+  },
+  {
+    "objectID": "index.html#cómo-generar-este-sitio",
+    "href": "index.html#cómo-generar-este-sitio",
+    "title": "Clasificador de cáncer de mama",
+    "section": "5 Cómo generar este sitio",
+    "text": "5 Cómo generar este sitio\n# Desde el directorio quarto/\nquarto render\n\n# Solo el paper en PDF\nquarto render paper.qmd --to pdf\n\n# Solo la presentación\nquarto render presentation.qmd"
+  },
+  {
+    "objectID": "index.html#publicar-en-github-pages",
+    "href": "index.html#publicar-en-github-pages",
+    "title": "Clasificador de cáncer de mama",
+    "section": "6 Publicar en GitHub Pages",
+    "text": "6 Publicar en GitHub Pages\n# 1. Renderizar (output va a docs/)\nquarto render\n\n# 2. Subir a GitHub\ngit add docs/\ngit commit -m \"docs: actualizar sitio Quarto\"\ngit push origin main\n\n# 3. Activar GitHub Pages\n# Repo → Settings → Pages → Source: rama main, carpeta /docs\n\n# URL resultante:\n# https://usuario.github.io/breast-cancer-classifier/"
+  },
+  {
+    "objectID": "index.html#referencia-principal",
+    "href": "index.html#referencia-principal",
+    "title": "Clasificador de cáncer de mama",
+    "section": "7 Referencia principal",
+    "text": "7 Referencia principal\nEl dataset utilizado es el Breast Cancer Wisconsin (Street, Wolberg, y Mangasarian 1993), incluido en sklearn.datasets.load_breast_cancer."
+  },
+  {
+    "objectID": "index.html#referencias",
+    "href": "index.html#referencias",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Referencias",
+    "text": "Referencias\n\n\nStreet, W. Nick, William H. Wolberg, y Olvi L. Mangasarian. 1993. «Nuclear feature extraction for breast tumor diagnosis». Proceedings of SPIE 1905: 861-70. https://doi.org/10.1117/12.148698."
+  },
+  {
+    "objectID": "paper.html",
+    "href": "paper.html",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "",
+    "text": "El diagnóstico temprano de cáncer de mama es uno de los factores más determinantes en la supervivencia de las pacientes. Los modelos de aprendizaje automático ofrecen una vía complementaria para asistir la interpretación de imágenes y datos clínicos (Street, Wolberg, y Mangasarian 1993).\nEste trabajo presenta un experimento reproducible para clasificar tumores mamarios como malignos o benignos a partir de características morfológicas extraídas computacionalmente, con énfasis en el proceso experimental más que en la optimización de métricas.\n\n\n\nEl dataset Breast Cancer Wisconsin (Street, Wolberg, y Mangasarian 1993; Mangasarian, Street, y Wolberg 1995) contiene mediciones de características del núcleo celular obtenidas a partir de imágenes digitalizadas de biopsias con aguja fina (FNA). Es un benchmark establecido que permite ilustrar los principios de diseño experimental en ML sin requerir infraestructura de GPU.\n\n\n\n\nEste trabajo:\n\nFormula una pregunta científica falsable con criterio cuantitativo.\nImplementa un pipeline reproducible usando DVC y Weights & Biases.\nCompara dos familias de modelos con análisis de estabilidad.\nDocumenta todo el proceso con Quarto para múltiples audiencias."
+  },
+  {
+    "objectID": "paper.html#motivación",
+    "href": "paper.html#motivación",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "",
+    "text": "El dataset Breast Cancer Wisconsin (Street, Wolberg, y Mangasarian 1993; Mangasarian, Street, y Wolberg 1995) contiene mediciones de características del núcleo celular obtenidas a partir de imágenes digitalizadas de biopsias con aguja fina (FNA). Es un benchmark establecido que permite ilustrar los principios de diseño experimental en ML sin requerir infraestructura de GPU."
+  },
+  {
+    "objectID": "paper.html#contribuciones",
+    "href": "paper.html#contribuciones",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "",
+    "text": "Este trabajo:\n\nFormula una pregunta científica falsable con criterio cuantitativo.\nImplementa un pipeline reproducible usando DVC y Weights & Biases.\nCompara dos familias de modelos con análisis de estabilidad.\nDocumenta todo el proceso con Quarto para múltiples audiencias."
+  },
+  {
+    "objectID": "paper.html#dataset",
+    "href": "paper.html#dataset",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.1 Dataset",
+    "text": "2.1 Dataset\nUtilizamos sklearn.datasets.load_breast_cancer, que contiene 569 muestras con 30 características morfológicas numéricas y una etiqueta binaria: 0 = maligno (212 casos, 37.3%) y 1 = benigno (357 casos, 62.7%).\n\n\nCódigo\nfrom sklearn.datasets import load_breast_cancer\nimport pandas as pd\n\nbc = load_breast_cancer()\nsummary = pd.DataFrame({\n    \"Split\":       [\"Train\", \"Val\", \"Test\", \"Total\"],\n    \"N muestras\":  [384, 68, 114, 569],\n    \"% maligno\":   [\"37.2%\", \"37.1%\", \"37.7%\", \"37.3%\"],\n})\nsummary\n\n\n\n\nTabla 1: Resumen del dataset Breast Cancer Wisconsin\n\n\n\n\n\n\n\n\n\n\nSplit\nN muestras\n% maligno\n\n\n\n\n0\nTrain\n384\n37.2%\n\n\n1\nVal\n68\n37.1%\n\n\n2\nTest\n114\n37.7%\n\n\n3\nTotal\n569\n37.3%\n\n\n\n\n\n\n\n\n\n\nLa división es estratificada (stratify=y) para garantizar proporciones de clase similares en los tres splits (Pineau et al. 2021)."
+  },
+  {
+    "objectID": "paper.html#preprocesamiento",
+    "href": "paper.html#preprocesamiento",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.2 Preprocesamiento",
+    "text": "2.2 Preprocesamiento\nTodas las características se escalan con StandardScaler, ajustado exclusivamente sobre el training set para evitar data leakage (Hastie, Tibshirani, y Friedman 2009)."
+  },
+  {
+    "objectID": "paper.html#modelos",
+    "href": "paper.html#modelos",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.3 Modelos",
+    "text": "2.3 Modelos\n\nSe comparan dos familias:\nLogistic Regression — modelo interpretable con regularización L2 y ponderación de clases (class_weight=\"balanced\").\nMLPClassifier — red neuronal de una capa oculta, tratada como modelo de mayor capacidad para comparación.\n# Configuración baseline (configs/baseline.yaml)\nmodel:\n  type:         \"logistic_regression\"\n  class_weight: \"balanced\"\n  C:            1.0\n  max_iter:     200"
+  },
+  {
+    "objectID": "paper.html#métricas-de-evaluación",
+    "href": "paper.html#métricas-de-evaluación",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.4 Métricas de evaluación",
+    "text": "2.4 Métricas de evaluación\n\nLa métrica primaria es recall de la clase maligna, dado el costo asimétrico de los errores en diagnóstico clínico: un falso negativo (cáncer no detectado) tiene consecuencias graves, mientras que un falso positivo genera un estudio adicional.\n\\[\\text{recall}_{\\text{maligno}} = \\frac{TP}{TP + FN}\\]\nComo métrica secundaria se usa AUC-ROC, que mide la capacidad discriminativa independientemente del umbral de decisión."
+  },
+  {
+    "objectID": "paper.html#hipótesis",
+    "href": "paper.html#hipótesis",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.5 Hipótesis",
+    "text": "2.5 Hipótesis\nH₀: \\(\\text{recall}_{\\text{maligno}} &lt; 0.90\\) o \\(\\text{AUC-ROC} \\leq 0.50\\)\nH₁: \\(\\text{recall}_{\\text{maligno}} \\geq 0.90\\) y \\(\\text{AUC-ROC} &gt; 0.50\\)"
+  },
+  {
+    "objectID": "paper.html#validación",
+    "href": "paper.html#validación",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "2.6 Validación",
+    "text": "2.6 Validación\n\nPara garantizar robustez del resultado se realizan:\n\nAnálisis de estabilidad con 3 seeds (7, 42, 99).\nBarrido de hiperparámetros con 9 configuraciones por modelo.\nThreshold tuning en el val set (umbral óptimo: 0.4).\nDiagnóstico train/test para detectar overfitting."
+  },
+  {
+    "objectID": "paper.html#resultado-principal",
+    "href": "paper.html#resultado-principal",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "3.1 Resultado principal",
+    "text": "3.1 Resultado principal\nEl modelo logró recall_malignant = 0.976 y AUC-ROC = 0.994, superando en ambas métricas al clasificador de mayoría. La hipótesis H₁ se sostiene."
+  },
+  {
+    "objectID": "paper.html#evaluación-de-h₁",
+    "href": "paper.html#evaluación-de-h₁",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "3.2 Evaluación de H₁",
+    "text": "3.2 Evaluación de H₁\nDe 42 tumores malignos en el test set, el modelo detectó correctamente 41 (TP = 41, FN = 1). Los 5 falsos positivos corresponden a casos benignos clasificados como malignos, lo que generaría estudios adicionales pero no representa un riesgo clínico inmediato."
+  },
+  {
+    "objectID": "paper.html#estabilidad-del-resultado",
+    "href": "paper.html#estabilidad-del-resultado",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "3.3 Estabilidad del resultado",
+    "text": "3.3 Estabilidad del resultado\nEl recall es idéntico (0.9762) en las tres semillas, lo que indica que el resultado es determinista dado el split y los hiperparámetros. La varianza observada en AUC (σ = 0.0013) está dentro del rango aceptable."
+  },
+  {
+    "objectID": "paper.html#comparación-logistic-vs-mlp",
+    "href": "paper.html#comparación-logistic-vs-mlp",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "3.4 Comparación Logistic vs MLP",
+    "text": "3.4 Comparación Logistic vs MLP\n\nAmbos modelos obtienen recall medio 0.968 con std 0.012 sobre 9 configuraciones cada uno. La diferencia en rendimiento es estadísticamente no significativa. La regresión logística se prefiere por su interpretabilidad directa."
+  },
+  {
+    "objectID": "paper.html#análisis-de-curvas-roc-y-pr",
+    "href": "paper.html#análisis-de-curvas-roc-y-pr",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "3.5 Análisis de curvas ROC y PR",
+    "text": "3.5 Análisis de curvas ROC y PR"
+  },
+  {
+    "objectID": "paper.html#interpretación-del-modelo",
+    "href": "paper.html#interpretación-del-modelo",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "4.1 Interpretación del modelo",
+    "text": "4.1 Interpretación del modelo\nLa regresión logística permite inspeccionar los coeficientes directamente. Los tres features más influyentes son radius error, worst texture y worst concave points, todos con coeficiente negativo: valores más altos indican mayor probabilidad de malignidad. Este patrón es consistente con el conocimiento médico sobre morfología tumoral."
+  },
+  {
+    "objectID": "paper.html#limitaciones",
+    "href": "paper.html#limitaciones",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "4.2 Limitaciones",
+    "text": "4.2 Limitaciones\n\n\nTamaño del dataset: 569 muestras es pequeño para generalizar a nuevas poblaciones. Los resultados son válidos como prueba de concepto.\nDistribución de clases: el desbalance (37/63) justifica el uso de class_weight=\"balanced\", pero en producción el umbral óptimo dependería de las tasas de prevalencia reales de la población objetivo.\nValidación externa: el modelo no ha sido evaluado en datos de otra institución o cohorte demográfica diferente.\nExplicabilidad regulatoria: en muchos contextos clínicos se requieren métodos de explicabilidad certificados (GDPR, FDA) que van más allá del análisis de coeficientes."
+  },
+  {
+    "objectID": "paper.html#comparación-de-modelos",
+    "href": "paper.html#comparación-de-modelos",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "4.3 Comparación de modelos",
+    "text": "4.3 Comparación de modelos\nEl MLP no supera de forma estadísticamente relevante a la regresión logística en este dataset. Esto es consistente con la literatura (Hastie, Tibshirani, y Friedman 2009): para datos tabulares de baja dimensión, los modelos lineales suelen ser competitivos con métodos más complejos.\nElegir MLP añadiría opacidad sin ganancia medible en recall, lo que no está justificado para un sistema de soporte a decisión clínica."
+  },
+  {
+    "objectID": "paper.html#implicaciones-prácticas",
+    "href": "paper.html#implicaciones-prácticas",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "4.4 Implicaciones prácticas",
+    "text": "4.4 Implicaciones prácticas\n\nUn modelo con recall = 0.976 significaría, en una cohorte de 1000 mujeres con 370 casos malignos, no detectar aproximadamente 9 casos. Según el contexto clínico, esto puede ser aceptable como herramienta de triaje inicial, pero no como diagnóstico definitivo."
+  },
+  {
+    "objectID": "paper.html#trabajo-futuro",
+    "href": "paper.html#trabajo-futuro",
+    "title": "Clasificación de tumores mamarios con regresión logística: un experimento reproducible",
+    "section": "4.5 Trabajo futuro",
+    "text": "4.5 Trabajo futuro\n\n\nValidación en dataset externo.\nAnálisis de equidad por subgrupos demográficos.\nCalibración de probabilidades para uso clínico.\nIntegración con sistemas de gestión de imágenes (PACS/RIS)."
+  },
+  {
+    "objectID": "sections/results.html",
+    "href": "sections/results.html",
+    "title": "Resultados",
+    "section": "",
+    "text": "El modelo logró recall_malignant = 0.976 y AUC-ROC = 0.994, superando en ambas métricas al clasificador de mayoría. La hipótesis H₁ se sostiene."
+  },
+  {
+    "objectID": "sections/results.html#resultado-principal",
+    "href": "sections/results.html#resultado-principal",
+    "title": "Resultados",
+    "section": "",
+    "text": "El modelo logró recall_malignant = 0.976 y AUC-ROC = 0.994, superando en ambas métricas al clasificador de mayoría. La hipótesis H₁ se sostiene."
+  },
+  {
+    "objectID": "sections/results.html#evaluación-de-h₁",
+    "href": "sections/results.html#evaluación-de-h₁",
+    "title": "Resultados",
+    "section": "2 Evaluación de H₁",
+    "text": "2 Evaluación de H₁\nDe 42 tumores malignos en el test set, el modelo detectó correctamente 41 (TP = 41, FN = 1). Los 5 falsos positivos corresponden a casos benignos clasificados como malignos, lo que generaría estudios adicionales pero no representa un riesgo clínico inmediato."
+  },
+  {
+    "objectID": "sections/results.html#estabilidad-del-resultado",
+    "href": "sections/results.html#estabilidad-del-resultado",
+    "title": "Resultados",
+    "section": "3 Estabilidad del resultado",
+    "text": "3 Estabilidad del resultado\nEl recall es idéntico (0.9762) en las tres semillas, lo que indica que el resultado es determinista dado el split y los hiperparámetros. La varianza observada en AUC (σ = 0.0013) está dentro del rango aceptable."
+  },
+  {
+    "objectID": "sections/results.html#comparación-logistic-vs-mlp",
+    "href": "sections/results.html#comparación-logistic-vs-mlp",
+    "title": "Resultados",
+    "section": "4 Comparación Logistic vs MLP",
+    "text": "4 Comparación Logistic vs MLP\n\nAmbos modelos obtienen recall medio 0.968 con std 0.012 sobre 9 configuraciones cada uno. La diferencia en rendimiento es estadísticamente no significativa. La regresión logística se prefiere por su interpretabilidad directa."
+  },
+  {
+    "objectID": "sections/results.html#análisis-de-curvas-roc-y-pr",
+    "href": "sections/results.html#análisis-de-curvas-roc-y-pr",
+    "title": "Resultados",
+    "section": "5 Análisis de curvas ROC y PR",
+    "text": "5 Análisis de curvas ROC y PR"
+  },
+  {
+    "objectID": "sections/discussion.html",
+    "href": "sections/discussion.html",
+    "title": "",
+    "section": "",
+    "text": "Código"
+  },
+  {
+    "objectID": "sections/discussion.html#interpretación-del-modelo",
+    "href": "sections/discussion.html#interpretación-del-modelo",
+    "title": "",
+    "section": "1.1 Interpretación del modelo",
+    "text": "1.1 Interpretación del modelo\nLa regresión logística permite inspeccionar los coeficientes directamente. Los tres features más influyentes son radius error, worst texture y worst concave points, todos con coeficiente negativo: valores más altos indican mayor probabilidad de malignidad. Este patrón es consistente con el conocimiento médico sobre morfología tumoral."
+  },
+  {
+    "objectID": "sections/discussion.html#limitaciones",
+    "href": "sections/discussion.html#limitaciones",
+    "title": "",
+    "section": "1.2 Limitaciones",
+    "text": "1.2 Limitaciones\n\n\nTamaño del dataset: 569 muestras es pequeño para generalizar a nuevas poblaciones. Los resultados son válidos como prueba de concepto.\nDistribución de clases: el desbalance (37/63) justifica el uso de class_weight=\"balanced\", pero en producción el umbral óptimo dependería de las tasas de prevalencia reales de la población objetivo.\nValidación externa: el modelo no ha sido evaluado en datos de otra institución o cohorte demográfica diferente.\nExplicabilidad regulatoria: en muchos contextos clínicos se requieren métodos de explicabilidad certificados (GDPR, FDA) que van más allá del análisis de coeficientes."
+  },
+  {
+    "objectID": "sections/discussion.html#comparación-de-modelos",
+    "href": "sections/discussion.html#comparación-de-modelos",
+    "title": "",
+    "section": "1.3 Comparación de modelos",
+    "text": "1.3 Comparación de modelos\nEl MLP no supera de forma estadísticamente relevante a la regresión logística en este dataset. Esto es consistente con la literatura (Hastie, Tibshirani, y Friedman 2009): para datos tabulares de baja dimensión, los modelos lineales suelen ser competitivos con métodos más complejos.\nElegir MLP añadiría opacidad sin ganancia medible en recall, lo que no está justificado para un sistema de soporte a decisión clínica."
+  },
+  {
+    "objectID": "sections/discussion.html#implicaciones-prácticas",
+    "href": "sections/discussion.html#implicaciones-prácticas",
+    "title": "",
+    "section": "1.4 Implicaciones prácticas",
+    "text": "1.4 Implicaciones prácticas\n\nUn modelo con recall = 0.976 significaría, en una cohorte de 1000 mujeres con 370 casos malignos, no detectar aproximadamente 9 casos. Según el contexto clínico, esto puede ser aceptable como herramienta de triaje inicial, pero no como diagnóstico definitivo."
+  },
+  {
+    "objectID": "sections/discussion.html#trabajo-futuro",
+    "href": "sections/discussion.html#trabajo-futuro",
+    "title": "",
+    "section": "1.5 Trabajo futuro",
+    "text": "1.5 Trabajo futuro\n\n\nValidación en dataset externo.\nAnálisis de equidad por subgrupos demográficos.\nCalibración de probabilidades para uso clínico.\nIntegración con sistemas de gestión de imágenes (PACS/RIS)."
+  },
+  {
+    "objectID": "presentation.html#el-problema",
+    "href": "presentation.html#el-problema",
+    "title": "Clasificador de cáncer de mama",
+    "section": "El problema",
+    "text": "El problema\n\n\n¿Cómo ayudar a detectar cáncer de mama de forma más temprana?\nLos datos: 569 biopsias, 30 características morfológicas del núcleo celular (Street, Wolberg, y Mangasarian 1993).\nEl desafío clínico:\n\nFalso negativo: tumor maligno no detectado → consecuencia grave\nFalso positivo: biopsia innecesaria → costoso, no fatal\n\n→ La métrica correcta es recall, no accuracy."
+  },
+  {
+    "objectID": "presentation.html#la-pregunta-científica",
+    "href": "presentation.html#la-pregunta-científica",
+    "title": "Clasificador de cáncer de mama",
+    "section": "La pregunta científica",
+    "text": "La pregunta científica\n\n¿Un modelo de regresión logística con ponderación de clases alcanza recall ≥ 0.90 para la clase maligna y supera a un clasificador de mayoría en AUC-ROC?\n\nH₀: recall &lt; 0.90 ó AUC-ROC ≤ 0.50\nH₁: recall ≥ 0.90 y AUC-ROC &gt; 0.50\n\n\n\n\n\n\nNota\n\n\nLa pregunta está definida antes de escribir una sola línea de código. El criterio de éxito es numérico y falsable."
+  },
+  {
+    "objectID": "presentation.html#el-pipeline",
+    "href": "presentation.html#el-pipeline",
+    "title": "Clasificador de cáncer de mama",
+    "section": "El pipeline",
+    "text": "El pipeline\n\n\n\n\n\nflowchart LR\n    A[\"configs/\\nbaseline.yaml\"] --&gt; B[\"prepare_data\\nStandardScaler + split\"]\n    B --&gt; C[\"train\\nLogisticRegression\"]\n    C --&gt; D[\"evaluate\\nrecall + AUC\"]\n    D --&gt; E[\"outputs/\\ntest_metrics.json\"]\n    A --&gt; C\n    A --&gt; D\n\n\n\n\n\n\n\n\n\nHerramienta\nRol\n\n\n\n\nYAML\nConfiguración desacoplada del código\n\n\nDVC\nReproducibilidad del pipeline\n\n\nW&B\nRegistro y comparación de runs\n\n\nQuarto\nComunicación de resultados"
+  },
+  {
+    "objectID": "presentation.html#los-modelos-comparados",
+    "href": "presentation.html#los-modelos-comparados",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Los modelos comparados",
+    "text": "Los modelos comparados\n\n\nLogistic Regression\nmodel:\n  type: logistic_regression\n  class_weight: balanced\n  C: 1.0\n\nInterpretable: coeficientes directos\nEstable: std(recall) = 0.000\nRápido: &lt; 1 s en CPU\n\n\nMLP\nmodel:\n  type: mlp\n  hidden_layer_sizes: [8]\n  alpha: 0.0001\n\nMayor capacidad\nMenos interpretable\nMayor varianza entre seeds\n\n\n\n\n\n\n\n\nTip\n\n\nCon 569 muestras, la complejidad adicional del MLP no está justificada. Los modelos tienen rendimiento equivalente, Logistic gana por parsimonia."
+  },
+  {
+    "objectID": "presentation.html#resultados",
+    "href": "presentation.html#resultados",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Resultados",
+    "text": "Resultados"
+  },
+  {
+    "objectID": "presentation.html#por-qué-logistic-y-no-mlp",
+    "href": "presentation.html#por-qué-logistic-y-no-mlp",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Por qué Logistic y no MLP",
+    "text": "Por qué Logistic y no MLP\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAdvertencia\n\n\nRendimiento equivalente → Logistic gana por interpretabilidad, robustez y explicabilidad clínica."
+  },
+  {
+    "objectID": "presentation.html#interpretación-coeficientes-reales",
+    "href": "presentation.html#interpretación-coeficientes-reales",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Interpretación: coeficientes reales",
+    "text": "Interpretación: coeficientes reales"
+  },
+  {
+    "objectID": "presentation.html#conclusiones",
+    "href": "presentation.html#conclusiones",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Conclusiones",
+    "text": "Conclusiones\n\nH₁ sostenida: recall = 0.976, AUC-ROC = 0.994 ✓\nEl modelo es estable bajo variación de seeds (std = 0.000)\nLos coeficientes son coherentes con conocimiento médico\nUn modelo más complejo no justifica la pérdida de interpretabilidad\n\n\n\n\n\n\n\nPara producción aún faltaría:\n\n\n\nValidación en cohorte externa\nEvaluación de equidad por subgrupos\nCalibración de probabilidades\nRevisión ética y regulatoria"
+  },
+  {
+    "objectID": "presentation.html#referencias",
+    "href": "presentation.html#referencias",
+    "title": "Clasificador de cáncer de mama",
+    "section": "Referencias",
+    "text": "Referencias\n\n\nStreet, W. Nick, William H. Wolberg, y Olvi L. Mangasarian. 1993. «Nuclear feature extraction for breast tumor diagnosis». Proceedings of SPIE 1905: 861-70. https://doi.org/10.1117/12.148698."
+  },
+  {
+    "objectID": "sections/intro.html",
+    "href": "sections/intro.html",
+    "title": "",
+    "section": "",
+    "text": "Código"
+  },
+  {
+    "objectID": "sections/intro.html#motivación",
+    "href": "sections/intro.html#motivación",
+    "title": "",
+    "section": "1.1 Motivación",
+    "text": "1.1 Motivación\n\nEl dataset Breast Cancer Wisconsin (Street, Wolberg, y Mangasarian 1993; Mangasarian, Street, y Wolberg 1995) contiene mediciones de características del núcleo celular obtenidas a partir de imágenes digitalizadas de biopsias con aguja fina (FNA). Es un benchmark establecido que permite ilustrar los principios de diseño experimental en ML sin requerir infraestructura de GPU."
+  },
+  {
+    "objectID": "sections/intro.html#contribuciones",
+    "href": "sections/intro.html#contribuciones",
+    "title": "",
+    "section": "1.2 Contribuciones",
+    "text": "1.2 Contribuciones\n\nEste trabajo:\n\nFormula una pregunta científica falsable con criterio cuantitativo.\nImplementa un pipeline reproducible usando DVC y Weights & Biases.\nCompara dos familias de modelos con análisis de estabilidad.\nDocumenta todo el proceso con Quarto para múltiples audiencias."
+  },
+  {
+    "objectID": "sections/methodology.html",
+    "href": "sections/methodology.html",
+    "title": "Metodología",
+    "section": "",
+    "text": "Utilizamos sklearn.datasets.load_breast_cancer, que contiene 569 muestras con 30 características morfológicas numéricas y una etiqueta binaria: 0 = maligno (212 casos, 37.3%) y 1 = benigno (357 casos, 62.7%).\n\n\nCódigo\nfrom sklearn.datasets import load_breast_cancer\nimport pandas as pd\n\nbc = load_breast_cancer()\nsummary = pd.DataFrame({\n    \"Split\":       [\"Train\", \"Val\", \"Test\", \"Total\"],\n    \"N muestras\":  [384, 68, 114, 569],\n    \"% maligno\":   [\"37.2%\", \"37.1%\", \"37.7%\", \"37.3%\"],\n})\nsummary\n\n\n\n\nTabla 1: Resumen del dataset Breast Cancer Wisconsin\n\n\n\n\n\n\n\n\n\n\nSplit\nN muestras\n% maligno\n\n\n\n\n0\nTrain\n384\n37.2%\n\n\n1\nVal\n68\n37.1%\n\n\n2\nTest\n114\n37.7%\n\n\n3\nTotal\n569\n37.3%\n\n\n\n\n\n\n\n\n\n\nLa división es estratificada (stratify=y) para garantizar proporciones de clase similares en los tres splits (Pineau et al. 2021)."
+  },
+  {
+    "objectID": "sections/methodology.html#dataset",
+    "href": "sections/methodology.html#dataset",
+    "title": "Metodología",
+    "section": "",
+    "text": "Utilizamos sklearn.datasets.load_breast_cancer, que contiene 569 muestras con 30 características morfológicas numéricas y una etiqueta binaria: 0 = maligno (212 casos, 37.3%) y 1 = benigno (357 casos, 62.7%).\n\n\nCódigo\nfrom sklearn.datasets import load_breast_cancer\nimport pandas as pd\n\nbc = load_breast_cancer()\nsummary = pd.DataFrame({\n    \"Split\":       [\"Train\", \"Val\", \"Test\", \"Total\"],\n    \"N muestras\":  [384, 68, 114, 569],\n    \"% maligno\":   [\"37.2%\", \"37.1%\", \"37.7%\", \"37.3%\"],\n})\nsummary\n\n\n\n\nTabla 1: Resumen del dataset Breast Cancer Wisconsin\n\n\n\n\n\n\n\n\n\n\nSplit\nN muestras\n% maligno\n\n\n\n\n0\nTrain\n384\n37.2%\n\n\n1\nVal\n68\n37.1%\n\n\n2\nTest\n114\n37.7%\n\n\n3\nTotal\n569\n37.3%\n\n\n\n\n\n\n\n\n\n\nLa división es estratificada (stratify=y) para garantizar proporciones de clase similares en los tres splits (Pineau et al. 2021)."
+  },
+  {
+    "objectID": "sections/methodology.html#preprocesamiento",
+    "href": "sections/methodology.html#preprocesamiento",
+    "title": "Metodología",
+    "section": "2 Preprocesamiento",
+    "text": "2 Preprocesamiento\nTodas las características se escalan con StandardScaler, ajustado exclusivamente sobre el training set para evitar data leakage (Hastie, Tibshirani, y Friedman 2009)."
+  },
+  {
+    "objectID": "sections/methodology.html#modelos",
+    "href": "sections/methodology.html#modelos",
+    "title": "Metodología",
+    "section": "3 Modelos",
+    "text": "3 Modelos\n\nSe comparan dos familias:\nLogistic Regression — modelo interpretable con regularización L2 y ponderación de clases (class_weight=\"balanced\").\nMLPClassifier — red neuronal de una capa oculta, tratada como modelo de mayor capacidad para comparación.\n# Configuración baseline (configs/baseline.yaml)\nmodel:\n  type:         \"logistic_regression\"\n  class_weight: \"balanced\"\n  C:            1.0\n  max_iter:     200"
+  },
+  {
+    "objectID": "sections/methodology.html#métricas-de-evaluación",
+    "href": "sections/methodology.html#métricas-de-evaluación",
+    "title": "Metodología",
+    "section": "4 Métricas de evaluación",
+    "text": "4 Métricas de evaluación\n\nLa métrica primaria es recall de la clase maligna, dado el costo asimétrico de los errores en diagnóstico clínico: un falso negativo (cáncer no detectado) tiene consecuencias graves, mientras que un falso positivo genera un estudio adicional.\n\\[\\text{recall}_{\\text{maligno}} = \\frac{TP}{TP + FN}\\]\nComo métrica secundaria se usa AUC-ROC, que mide la capacidad discriminativa independientemente del umbral de decisión."
+  },
+  {
+    "objectID": "sections/methodology.html#hipótesis",
+    "href": "sections/methodology.html#hipótesis",
+    "title": "Metodología",
+    "section": "5 Hipótesis",
+    "text": "5 Hipótesis\nH₀: \\(\\text{recall}_{\\text{maligno}} &lt; 0.90\\) o \\(\\text{AUC-ROC} \\leq 0.50\\)\nH₁: \\(\\text{recall}_{\\text{maligno}} \\geq 0.90\\) y \\(\\text{AUC-ROC} &gt; 0.50\\)"
+  },
+  {
+    "objectID": "sections/methodology.html#validación",
+    "href": "sections/methodology.html#validación",
+    "title": "Metodología",
+    "section": "6 Validación",
+    "text": "6 Validación\n\nPara garantizar robustez del resultado se realizan:\n\nAnálisis de estabilidad con 3 seeds (7, 42, 99).\nBarrido de hiperparámetros con 9 configuraciones por modelo.\nThreshold tuning en el val set (umbral óptimo: 0.4).\nDiagnóstico train/test para detectar overfitting."
+  },
+  {
+    "objectID": "slides.html#agenda",
+    "href": "slides.html#agenda",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Agenda",
+    "text": "Agenda\n\n\n\n\n\nTiempo\nBloque\n\n\n\n\n0:00–0:15\nRecapitulación Día 1 + pregunta científica\n\n\n0:15–0:35\nDataset y reproducibilidad\n\n\n0:35–0:55\nModelo y función de pérdida\n\n\n0:55–1:20\nPipeline: DVC + W&B\n\n\n1:20–1:45\nEjecución en vivo\n\n\n1:45–2:00\nMétricas, hipótesis y cierre\n\n\n\n\n\n\n\n\n\n\nObjetivo del día\n\n\nPasar de la pregunta científica del Día 1 a un experimento ejecutable, reproducible y auditado, corriendo en CPU en menos de 5 segundos.\nAl finalizar tendrás:\n\nPipeline corriendo de extremo a extremo\n≥ 2 runs comparados en W&B\nHipótesis H₁ evaluada con evidencia"
+  },
+  {
+    "objectID": "slides.html#recapitulación-y-pregunta-científica",
+    "href": "slides.html#recapitulación-y-pregunta-científica",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Recapitulación y pregunta científica",
+    "text": "Recapitulación y pregunta científica"
+  },
+  {
+    "objectID": "slides.html#lo-que-construimos-ayer",
+    "href": "slides.html#lo-que-construimos-ayer",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Lo que construimos ayer",
+    "text": "Lo que construimos ayer\nEl experimento no es el modelo. Es el protocolo completo:\n\\[\\text{Experimento} = \\text{H} + \\text{D} + \\text{M} + \\text{P}\\]\nHipótesis + Datos + Métrica + Protocolo — todo definido antes de escribir código.\n\n\n\n\n\n\nLa pregunta científica de hoy\n\n\n“¿Un modelo de regresión logística con ponderación de clases alcanza recall ≥ 0.90 para la clase maligna y supera a un clasificador de mayoría en AUC-ROC?”\nH₀: recall &lt; 0.90 ó AUC-ROC ≤ 0.50\nH₁: recall ≥ 0.90 y AUC-ROC &gt; 0.50"
+  },
+  {
+    "objectID": "slides.html#de-la-pregunta-al-código",
+    "href": "slides.html#de-la-pregunta-al-código",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "De la pregunta al código",
+    "text": "De la pregunta al código\nCada componente de la pregunta se traduce directamente en código:\n\n\n\n\n\n\n\nComponente de la pregunta\nDecisión de implementación\n\n\n\n\nRegresión logística\nLogisticRegression en src/models/logistic.py\n\n\nPonderación de clases\nclass_weight: \"balanced\" en configs/baseline.yaml\n\n\nRecall ≥ 0.90\nmetrics.primary: recall_malignant en YAML\n\n\nClase maligna\npositive_label: 0 en data del YAML\n\n\nClasificador de mayoría\nDummyClassifier en src/evaluation/metrics.py\n\n\nAUC-ROC\nroc_auc_score en el mismo módulo\n\n\nUna sola evaluación en test\ntest_used: false hasta el reporte final\n\n\n\n\n\n\n\n\n\nTODO para el instructor\n\n\nMostrar configs/baseline.yaml y conectar cada campo con la pregunta científica. Es la traducción directa del Día 1 al código."
+  },
+  {
+    "objectID": "slides.html#dataset-y-reproducibilidad",
+    "href": "slides.html#dataset-y-reproducibilidad",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Dataset y reproducibilidad",
+    "text": "Dataset y reproducibilidad\nsklearn · CPU · seeds · YAML"
+  },
+  {
+    "objectID": "slides.html#por-qué-este-dataset",
+    "href": "slides.html#por-qué-este-dataset",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "¿Por qué este dataset?",
+    "text": "¿Por qué este dataset?\n\n\nsklearn.datasets.load_breast_cancer — Breast Cancer Wisconsin\n\n\n\nCaracterística\nValor\n\n\n\n\nTipo\nTabular (30 features numéricas)\n\n\nMuestras\n569\n\n\nClases\nMaligno (212) · Benigno (357)\n\n\nDesbalance\n37% maligno / 63% benigno\n\n\nDescarga\nNo requiere — incluido en sklearn\n\n\nGPU\nNo necesaria\n\n\nTiempo de entrenamiento\n&lt; 1 segundo en CPU\n\n\n\nEl desbalance real (37/63) es lo que justifica class_weight=\"balanced\" y el uso de recall como métrica primaria.\n\n\n\n\n\n\n\nPor qué accuracy engaña aquí\n\n\nUn modelo que siempre predice “benigno” obtiene:\n\nAccuracy = 63% ← parece razonable\nRecall maligno = 0.0 ← no detecta ningún cáncer\n\nUn cáncer no detectado es mucho más peligroso que una alarma falsa.\n→ La métrica que importa es recall de la clase maligna, no accuracy."
+  },
+  {
+    "objectID": "slides.html#reproducibilidad-seeds-y-yaml",
+    "href": "slides.html#reproducibilidad-seeds-y-yaml",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Reproducibilidad: seeds y YAML",
+    "text": "Reproducibilidad: seeds y YAML\n\n\n# src/training/config.py\ndef set_seed(seed: int = 42) -&gt; None:\n    \"\"\"\n    # TODO: verificar cómo afecta el seed.\n    # Cambia seed: 42 → 99 en el YAML.\n    # ¿Cambia el recall? ¿Cuánto?\n    # ¿Qué dice eso sobre la estabilidad\n    # del modelo y del split?\n    \"\"\"\n    random.seed(seed)\n    os.environ[\"PYTHONHASHSEED\"] = str(seed)\n    np.random.seed(seed)\n\n# configs/baseline.yaml\n# REPLACE: copia y cambia UN parámetro.\n\nseed: 42\n\nmodel:\n  type:         \"logistic_regression\"\n  class_weight: \"balanced\"  # ← ejercicio 1\n  C:            1.0          # ← ejercicio 2\n  max_iter:     200\n\nmetrics:\n  primary: \"recall_malignant\"\n  target:  0.90\n\n\n\n\n\n\n\nEl código lee SIEMPRE desde el YAML\n\n\nNingún valor está hardcodeado en .py. Cualquier cambio queda registrado en Git y en W&B automáticamente."
+  },
+  {
+    "objectID": "slides.html#división-estratificada",
+    "href": "slides.html#división-estratificada",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "División estratificada",
+    "text": "División estratificada\n# src/data/dataset.py\nX_trv, X_test, y_trv, y_test = train_test_split(\n    X, y,\n    test_size=test_size,\n    stratify=y,          # ← misma proporción maligno/benigno en cada split\n    random_state=seed,\n)\n\n\n\n\n\n\nPor qué stratify=y es obligatorio\n\n\nSin estratificación, el val set podría tener por azar 20% de malignos en lugar de 37%. Las métricas de validación quedarían sesgadas y la selección del modelo sería injusta.\nBlocking por clase = el principio de blocking del Día 1 aplicado a datos tabulares.\n\n\n\n\n\n\nSplit\nMuestras\n% maligno\n\n\n\n\nTrain\n~384\n~37%\n\n\nVal\n~68\n~37%\n\n\nTest\n~114\n~37%"
+  },
+  {
+    "objectID": "slides.html#modelo-y-función-de-pérdida",
+    "href": "slides.html#modelo-y-función-de-pérdida",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Modelo y función de pérdida",
+    "text": "Modelo y función de pérdida\nRegresión logística · class_weight · recall"
+  },
+  {
+    "objectID": "slides.html#por-qué-regresión-logística",
+    "href": "slides.html#por-qué-regresión-logística",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "¿Por qué regresión logística?",
+    "text": "¿Por qué regresión logística?\n\n\nCon 569 muestras y 30 features, una red neuronal sobreajustaría fácilmente. La regresión logística es la elección correcta porque:\n\nInterpretable: los coeficientes tienen significado directo\nRápida: converge en &lt; 100 iteraciones con L-BFGS\nProbabilística: devuelve P(maligno) ∈ [0, 1]\nBuen baseline: si no la superas, el modelo complejo no sirve\n\nHastie, Tibshirani, y Friedman (2009): “Para datos tabulares de baja dimensión, la regresión logística es frecuentemente competitiva con métodos mucho más complejos.”\n\n# src/models/logistic.py\n# TODO: entender qué hace class_weight.\n# REPLACE: cambia a None y observa\n#          el efecto en recall.\n\nLogisticRegression(\n    C=1.0,\n    class_weight=\"balanced\",\n    solver=\"lbfgs\",\n    max_iter=200,\n    random_state=42,\n)\nCon class_weight=\"balanced\" sklearn calcula:\n\\[w_{\\text{maligno}} = \\frac{n}{2 \\times n_{\\text{maligno}}}\\]"
+  },
+  {
+    "objectID": "slides.html#el-efecto-de-class_weightbalanced",
+    "href": "slides.html#el-efecto-de-class_weightbalanced",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "El efecto de class_weight=\"balanced\"",
+    "text": "El efecto de class_weight=\"balanced\"\n# Sin class_weight=\"balanced\":\n# La pérdida trata maligno y benigno como igualmente importantes.\n# El modelo aprende a predecir \"benigno\" la mayor parte del tiempo\n# porque eso minimiza la pérdida en el 63% mayoritario.\n# Resultado típico: accuracy ≈ 92%, recall_malignant ≈ 0.85 ✗\n\n# Con class_weight=\"balanced\":\n# Los errores en maligno pesan más en la pérdida.\n# El modelo sacrifica algo de accuracy general para mejorar recall.\n# Resultado típico: accuracy ≈ 96%, recall_malignant ≈ 0.97 ✓\n\n\n\n\n\n\nTODO para el instructor\n\n\nEjecutar en vivo con class_weight: null y luego con class_weight: \"balanced\". Mostrar ambos runs en W&B. Preguntar: ¿cuál preferirías en un sistema de screening clínico?"
+  },
+  {
+    "objectID": "slides.html#pipeline-dvc-wb",
+    "href": "slides.html#pipeline-dvc-wb",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Pipeline: DVC + W&B",
+    "text": "Pipeline: DVC + W&B\nReproducibilidad · auditabilidad · comparación de experimentos"
+  },
+  {
+    "objectID": "slides.html#los-tres-sistemas-de-registro",
+    "href": "slides.html#los-tres-sistemas-de-registro",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Los tres sistemas de registro",
+    "text": "Los tres sistemas de registro\n\nflowchart LR\n    A[\"Experimento\"] --&gt; B[\"Git\\nCódigo + configs\"]\n    A --&gt; C[\"DVC\\nDatos + pipeline\"]\n    A --&gt; D[\"W&B\\nMétricas + runs\"]\n    B --&gt; E[\"dvc repro\\nreproduce exactamente\"]\n    C --&gt; E\n    D --&gt; F[\"Dashboard\\ncomparar runs\"]\n\n\n\n\n\n\n\n\n\n\n\n\n\nSistema\nVersiona\nCuándo\n\n\n\n\nGit\nCódigo + YAML\nCada cambio significativo\n\n\nDVC\nDatos + pipeline\nCada run reproducido\n\n\nW&B\nMétricas + params\nCada ejecución de train.py"
+  },
+  {
+    "objectID": "slides.html#pipeline-dvc-tres-etapas",
+    "href": "slides.html#pipeline-dvc-tres-etapas",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Pipeline DVC: tres etapas",
+    "text": "Pipeline DVC: tres etapas\n\nflowchart LR\n    A[\"sklearn\\nload_breast_cancer\"] --&gt; B[\"prepare_data\\nsrc/data/dataset.py\"]\n    C[\"configs/\\nbaseline.yaml\"] --&gt; D[\"train\\nscripts/train.py\"]\n    B --&gt; D\n    D --&gt; E[\"outputs/\\nmodel.pkl\"]\n    E --&gt; F[\"evaluate\\nscripts/evaluate.py\"]\n    F --&gt; G[\"outputs/metrics/\\ntest_metrics.json\"]\n    C --&gt; F\n\n\n\n\n\n\n\n\n\n\n# Ejecutar todo de una vez\ndvc repro\n\n# Ver qué cambió\ndvc params diff\ndvc metrics diff\n\n\n\n\n\n\nTODO para el instructor\n\n\nMostrar dvc dag en terminal. Modificar un parámetro en el YAML y volver a ejecutar dvc repro. Preguntar: ¿qué etapas se re-ejecutaron y por qué?"
+  },
+  {
+    "objectID": "slides.html#wb-comparar-dos-runs",
+    "href": "slides.html#wb-comparar-dos-runs",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "W&B: comparar dos runs",
+    "text": "W&B: comparar dos runs\n# scripts/train.py\nwandb_run = wandb.init(\n    project = \"breast-cancer-classifier\",\n    config  = {\n        \"model\":        cfg[\"model\"][\"type\"],\n        \"class_weight\": cfg[\"model\"][\"class_weight\"],\n        \"C\":            cfg[\"model\"].get(\"C\", 1.0),\n        \"seed\":         cfg[\"seed\"],\n    },\n)\nwandb_run.log({\n    \"val/accuracy\": val_metrics[\"val/accuracy\"],\n    \"val/recall\":   val_metrics[\"val/recall\"],\n    \"val/auc\":      val_metrics[\"val/auc\"],\n})\n# TODO: comparar dos runs en W&B.\n# REPLACE: cambia class_weight y ejecuta un segundo run."
+  },
+  {
+    "objectID": "slides.html#métricas-y-evaluación-de-la-hipótesis",
+    "href": "slides.html#métricas-y-evaluación-de-la-hipótesis",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Métricas y evaluación de la hipótesis",
+    "text": "Métricas y evaluación de la hipótesis\nRecall · AUC-ROC · baseline · H₁"
+  },
+  {
+    "objectID": "slides.html#por-qué-recall-como-métrica-primaria",
+    "href": "slides.html#por-qué-recall-como-métrica-primaria",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "¿Por qué recall como métrica primaria?",
+    "text": "¿Por qué recall como métrica primaria?\n\n\n\\[\\text{Recall} = \\frac{TP}{TP + FN}\\]\nLos errores no son simétricos en diagnóstico:\n\n\n\n\n\n\n\nError\nConsecuencia\n\n\n\n\nFN (maligno predicho benigno)\nCáncer no tratado → peligroso\n\n\nFP (benigno predicho maligno)\nBiopsia adicional → molesto, costoso\n\n\n\nEl costo de un FN es mucho mayor que el de un FP. → Minimizar FN = maximizar recall.\nCriterio clínico: recall ≥ 0.90 en maligno.\n\n\n\n\n\n\n\nAUC-ROC como métrica secundaria\n\n\nAUC-ROC mide la capacidad discriminativa independientemente del umbral.\n\nAUC = 0.50 → no discrimina (igual que una moneda)\nAUC = 1.00 → separación perfecta\n\nUn modelo con recall = 1.0 y AUC = 0.5 predice siempre maligno. Por eso exigimos AUC &gt; 0.50 como condición adicional."
+  },
+  {
+    "objectID": "slides.html#el-baseline-de-mayoría",
+    "href": "slides.html#el-baseline-de-mayoría",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "El baseline de mayoría",
+    "text": "El baseline de mayoría\n# src/evaluation/metrics.py\n# TODO: entender por qué el baseline es necesario.\n\ndummy = DummyClassifier(strategy=\"most_frequent\")\ndummy.fit(X_train, y_train)\n\n# Predice siempre \"benigno\" (clase mayoritaria)\n# accuracy  = 0.626  ← parece razonable\n# recall    = 0.000  ← no detecta ningún cáncer\n# AUC-ROC   = 0.500  ← no discrimina en absoluto\n\n\n\n\n\n\nEl baseline define el piso mínimo\n\n\nCualquier modelo útil debe superar al baseline en ambas métricas simultáneamente.\nSi accuracy = 96% pero recall = 0.80: el modelo no sirve para screening clínico. Si recall = 0.95 pero AUC = 0.50: el modelo solo predice siempre positivo.\nLa hipótesis H₁ exige que se cumplan las dos condiciones a la vez."
+  },
+  {
+    "objectID": "slides.html#evaluación-de-la-hipótesis",
+    "href": "slides.html#evaluación-de-la-hipótesis",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Evaluación de la hipótesis",
+    "text": "Evaluación de la hipótesis\n# src/evaluation/metrics.py\ndef print_report(metrics, baseline_metrics, cfg):\n    target = cfg[\"metrics\"][\"target\"]   # 0.90\n    recall = metrics[\"recall_malignant\"]\n    auc    = metrics[\"auc_roc\"]\n\n    h1_recall = recall &gt;= target        # recall ≥ 0.90\n    h1_auc    = auc    &gt; 0.50\n    h1        = h1_recall and h1_auc\n\n    print(f\"Recall maligno : {recall:.4f}  → {'✓' if h1_recall else '✗'}\")\n    print(f\"AUC-ROC        : {auc:.4f}  → {'✓' if h1_auc else '✗'}\")\n\n    if h1:\n        print(\"→ H₁ SOSTENIDA\")\n    else:\n        print(\"→ H₀ NO RECHAZADA — ajustar class_weight o C\")"
+  },
+  {
+    "objectID": "slides.html#resultados-del-baseline-placeholder",
+    "href": "slides.html#resultados-del-baseline-placeholder",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Resultados del baseline (placeholder)",
+    "text": "Resultados del baseline (placeholder)\n\n\n\n\n\n\nEsta tabla se completa durante la sesión en vivo\n\n\n\n\n\n\n\n\n\nMétrica\nBaseline (mayoría)\nModelo baseline\n¿Cumple?\n\n\n\n\nRecall maligno\n0.000\n—\n—\n\n\nAUC-ROC\n0.500\n—\n—\n\n\nAccuracy\n0.626\n—\n—\n\n\nH₁ sostenida\n✗\n—\n—\n\n\n\n\n\n\n\n\n\nTODO para el instructor\n\n\nCompletar la tabla en tiempo real mientras el pipeline termina. Preguntar: ¿qué pasaría si cambiamos el umbral de 0.5 a 0.3? ¿Sube el recall? ¿A qué costo?"
+  },
+  {
+    "objectID": "slides.html#ejecución-en-vivo-y-cierre",
+    "href": "slides.html#ejecución-en-vivo-y-cierre",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Ejecución en vivo y cierre",
+    "text": "Ejecución en vivo y cierre"
+  },
+  {
+    "objectID": "slides.html#checklist-antes-de-ejecutar",
+    "href": "slides.html#checklist-antes-de-ejecutar",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Checklist antes de ejecutar",
+    "text": "Checklist antes de ejecutar\n\n\nEntorno:\n\n.venv activo: which python\nuv pip install -e \".[dev]\" completado\nwandb login ejecutado\ndvc init ejecutado\n\nTests:\n\npytest tests/test_model.py -v — todos PASSED\n\n\n# Secuencia completa en vivo\n\n# 1. Tests del modelo\nuv run pytest tests/test_model.py -v\n\n# 2. Run 1 — baseline\nuv run python scripts/train.py \\\n  --config configs/baseline.yaml\n\n# 3. Evaluación\nuv run python scripts/evaluate.py \\\n  --config configs/baseline.yaml\n\n# 4. Run 2 — sin balanceo\ncp configs/baseline.yaml \\\n   configs/no_balance.yaml\n# Editar: class_weight: null\nuv run python scripts/train.py \\\n  --config configs/no_balance.yaml"
+  },
+  {
+    "objectID": "slides.html#criterios-de-éxito-del-día-2",
+    "href": "slides.html#criterios-de-éxito-del-día-2",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Criterios de éxito del Día 2",
+    "text": "Criterios de éxito del Día 2\n\n\n\n\n\n\n\nCriterio\nVerificación\n\n\n\n\n≥ 2 runs en W&B\nDashboard en wandb.ai\n\n\ndvc repro sin errores\ndvc repro && echo \"OK\"\n\n\nmodel.pkl generado\nls outputs/checkpoints/model.pkl\n\n\nBaseline calculado\noutputs/metrics/test_metrics.json tiene clave baseline\n\n\nH₁ evaluada\ntest_metrics.json tiene hypothesis.H1_sustained\n\n\nTests pasando\npytest tests/test_model.py -v\n\n\nConfiguración desacoplada\nNingún valor hardcodeado en .py"
+  },
+  {
+    "objectID": "slides.html#mensaje-central",
+    "href": "slides.html#mensaje-central",
+    "title": "Día 2 · De la pregunta al experimento",
+    "section": "Mensaje central",
+    "text": "Mensaje central\n\nflowchart LR\n    A[\"Pregunta\\ncientífica\\n(Día 1)\"] --&gt; B[\"YAML\\n(config)\"]\n    B --&gt; C[\"Código\\n(src/)\"]\n    C --&gt; D[\"Pipeline\\n(DVC)\"]\n    D --&gt; E[\"Métricas\\n(W&B)\"]\n    E --&gt; F{\"H₁\\nsostenida?\"}\n    F --&gt;|Sí| G[\"Documentar\\n(Día 4)\"]\n    F --&gt;|No| H[\"Modificar\\nUNA variable\\n→ nuevo run\"]\n    H --&gt; B\n\n\n\n\n\n\n\n\n\n\nUn experimento que no sostiene H₁ no es un fracaso — es información científica. El siguiente paso es modificar una variable en el YAML y ejecutar de nuevo. Eso es exactamente DoE en práctica.\n\n\n\n\nHastie, Trevor, Robert Tibshirani, y Jerome Friedman. 2009. The Elements of Statistical Learning. 2.ª ed. Springer."
+  },
+  {
+    "objectID": "readme.html",
+    "href": "readme.html",
+    "title": "",
+    "section": "",
+    "text": "Código"
+  },
+  {
+    "objectID": "readme.html#pregunta-científica",
+    "href": "readme.html#pregunta-científica",
+    "title": "",
+    "section": "1.1 Pregunta científica",
+    "text": "1.1 Pregunta científica\n\n¿Un modelo de regresión logística con ponderación de clases alcanza recall ≥ 0.90 para la clase maligna y supera a un clasificador de mayoría en AUC-ROC?\n\nH₁: recall_malignant ≥ 0.90 y auc_roc &gt; 0.50 en el test set."
+  },
+  {
+    "objectID": "readme.html#instalación",
+    "href": "readme.html#instalación",
+    "title": "",
+    "section": "1.2 Instalación",
+    "text": "1.2 Instalación\n# Con uv (recomendado)\ncurl -LsSf https://astral.sh/uv/install.sh | sh\nuv venv --python 3.10\nsource .venv/bin/activate\nuv pip install -e \".[dev]\"\n\n# O con pip\npip install -r requirements.txt\nSin GPU. Sin descarga de datos. Ejecución en &lt; 5 segundos."
+  },
+  {
+    "objectID": "readme.html#ejecutar-el-experimento",
+    "href": "readme.html#ejecutar-el-experimento",
+    "title": "",
+    "section": "1.3 Ejecutar el experimento",
+    "text": "1.3 Ejecutar el experimento\n# Pipeline completo con DVC\ndvc repro\n\n# Scripts individuales\npython scripts/train.py    --config configs/baseline.yaml\npython scripts/evaluate.py --config configs/baseline.yaml\n\n# Sin W&B\npython scripts/train.py    --config configs/baseline.yaml --no-wandb\npython scripts/evaluate.py --config configs/baseline.yaml --no-wandb"
+  },
+  {
+    "objectID": "readme.html#el-único-archivo-que-modifican-los-alumnos",
+    "href": "readme.html#el-único-archivo-que-modifican-los-alumnos",
+    "title": "",
+    "section": "1.4 El único archivo que modifican los alumnos",
+    "text": "1.4 El único archivo que modifican los alumnos\nconfigs/baseline.yaml — copiar y cambiar un parámetro:\ncp configs/baseline.yaml configs/experiment_01.yaml\n# Editar experiment_01.yaml\npython scripts/train.py --config configs/experiment_01.yaml\n\n\n\nEjercicio\nCampo\nCambio sugerido\n\n\n\n\n1\nmodel.class_weight\n\"balanced\" → null\n\n\n2\nmodel.C\n1.0 → 0.01 o 100.0\n\n\n3\nseed\n42 → 99"
+  },
+  {
+    "objectID": "readme.html#estructura",
+    "href": "readme.html#estructura",
+    "title": "",
+    "section": "1.5 Estructura",
+    "text": "1.5 Estructura\nbreast-cancer-classifier/\n├── src/\n│   ├── data/dataset.py           # carga y split\n│   ├── models/logistic.py        # build_model(), save/load\n│   ├── training/config.py        # load_config(), set_seed()\n│   ├── training/trainer.py       # train_model(), evaluate_split()\n│   └── evaluation/metrics.py     # métricas, figuras, JSON\n├── scripts/\n│   ├── train.py                  # entrenamiento\n│   └── evaluate.py               # evaluación en test set\n├── configs/\n│   ├── default.yaml              # referencia de todos los campos\n│   └── baseline.yaml             # el que modifican los alumnos\n├── outputs/\n│   ├── checkpoints/model.pkl     # generado por train.py\n│   └── metrics/                  # JSON + figuras\n├── tests/\n├── quarto/slides.qmd             # slides del instructor\n├── docs/instructor_guide.md      # guía completa del instructor\n├── pyproject.toml\n└── dvc.yaml"
+  },
+  {
+    "objectID": "readme.html#tests",
+    "href": "readme.html#tests",
+    "title": "",
+    "section": "1.6 Tests",
+    "text": "1.6 Tests\npytest tests/test_model.py -v    # siempre deben pasar\npytest tests/ -v                 # completo (pipeline tests se saltan si faltan outputs)"
+  },
+  {
+    "objectID": "readme.html#referencia",
+    "href": "readme.html#referencia",
+    "title": "",
+    "section": "1.7 Referencia",
+    "text": "1.7 Referencia\nDataset: Breast Cancer Wisconsin — sklearn.datasets.load_breast_cancer()"
+  }
+]

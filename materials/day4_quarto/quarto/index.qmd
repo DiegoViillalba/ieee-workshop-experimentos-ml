@@ -1,0 +1,107 @@
+---
+title: "Clasificador de cáncer de mama"
+subtitle: "Un experimento reproducible de Machine Learning"
+date: today
+author:
+  - name: "John Doe"
+    affiliation: "Universidad XYZ"
+    email: "john.doe@universidadxyz.edu"
+format:
+  html:
+    theme: Flatly
+    toc: false
+---
+
+## Acerca de este proyecto
+
+Este sitio documenta el experimento completo desarrollado durante el
+**Workshop "De la idea al experimento"** (Días 1–4).
+
+Partimos de una pregunta científica, construimos un pipeline reproducible,
+entrenamos y validamos dos modelos, y comunicamos los resultados en múltiples
+formatos desde un único documento fuente.
+
+---
+
+## Pregunta científica
+
+> ¿Un modelo de regresión logística con ponderación de clases alcanza
+> **recall ≥ 0.90** para la clase maligna y supera a un clasificador de
+> mayoría en AUC-ROC?
+
+**Resultado:** H₁ sostenida. Recall = 0.976, AUC-ROC = 0.994.
+
+<!-- TODO: completar contenido en versión final -->
+
+---
+
+## Documentos disponibles
+
+| Documento | Formato | Audiencia |
+|---|---|---|
+| [Paper](paper.qmd) | HTML / PDF | Académica |
+| [Presentación](presentation.qmd) | RevealJS | Clase / Conferencia |
+| [Descripción general](readme.md) | Markdown | Instructor |
+
+---
+
+## Estructura del proyecto
+
+```
+breast-cancer-classifier/
+├── configs/           ← hiperparámetros (YAML)
+├── src/               ← código del pipeline
+├── scripts/           ← entrenamiento y evaluación
+├── outputs/           ← métricas, checkpoints, figuras
+├── quarto/            ← documentación (este sitio)
+└── docs/              ← guía del instructor
+```
+
+---
+
+## Cómo generar este sitio
+
+```bash
+# Desde el directorio quarto/
+quarto render
+
+# Solo el paper en PDF
+quarto render paper.qmd --to pdf
+
+# Solo la presentación
+quarto render presentation.qmd
+```
+
+---
+
+## Publicar en GitHub Pages
+
+```bash
+# 1. Renderizar (output va a docs/)
+quarto render
+
+# 2. Subir a GitHub
+git add docs/
+git commit -m "docs: actualizar sitio Quarto"
+git push origin main
+
+# 3. Activar GitHub Pages
+# Repo → Settings → Pages → Source: rama main, carpeta /docs
+
+# URL resultante:
+# https://usuario.github.io/breast-cancer-classifier/
+```
+
+<!-- TODO: publicar sitio -->
+
+---
+
+## Referencia principal
+
+El dataset utilizado es el Breast Cancer Wisconsin [@street1993nuclear],
+incluido en `sklearn.datasets.load_breast_cancer`.
+
+## Referencias {.unnumbered}
+
+::: {#refs}
+:::

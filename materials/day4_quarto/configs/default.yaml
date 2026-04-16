@@ -1,0 +1,48 @@
+# configs/default.yaml
+# Configuración base del experimento.
+# El código lee SIEMPRE desde aquí — ningún valor está hardcodeado en .py
+#
+# REPLACE: modifica cualquier campo y ejecuta de nuevo para generar un nuevo run.
+#          Cada cambio aquí queda registrado en Git y en W&B automáticamente.
+
+# ── Reproducibilidad ────────────────────────────────────────────────────────
+seed: 42
+# TODO: cambia seed a 0, 99 o 999 y vuelve a ejecutar.
+#       ¿Cambia el recall? ¿En cuánto?
+
+# ── Datos ───────────────────────────────────────────────────────────────────
+data:
+  test_size:  0.20    # fracción reservada para test
+  val_size:   0.15    # fracción de train reservada para validación
+  # target_class: 0 = maligno, 1 = benigno (sklearn load_breast_cancer)
+  # La clase positiva (maligno) es target = 0
+  positive_label: 0
+
+# ── Modelo ──────────────────────────────────────────────────────────────────
+model:
+  type:         "logistic_regression"
+  class_weight: "balanced"
+  solver:       "lbfgs"
+  max_iter:     200
+  C:            1.0     # inverso de la regularización (mayor C = menos regularización)
+# TODO: ¿por qué usar class_weight="balanced"?
+#       El dataset tiene 63% benigno y 37% maligno.
+#       Sin balanceo el modelo aprende a predecir benigno y obtiene alta accuracy
+#       pero bajo recall en la clase maligna — el error clínicamente peligroso.
+# REPLACE: prueba class_weight=null (sin balanceo) y compara el recall.
+# REPLACE: prueba C=0.01 (más regularización) y C=100.0 (menos regularización).
+
+# ── Métricas ─────────────────────────────────────────────────────────────────
+metrics:
+  primary:   "recall_malignant"
+  target:    0.90      # criterio de éxito clínico
+  threshold: 0.5
+
+# ── W&B ──────────────────────────────────────────────────────────────────────
+wandb:
+  project: "breast-cancer-classifier"
+  entity:  null        # null = cuenta personal
+  tags:    ["baseline", "logistic-regression", "balanced"]
+# TODO: comparar dos runs en W&B.
+#       Ejecuta con class_weight="balanced" y luego con class_weight=null.
+#       ¿Cuál tiene mayor recall? ¿Cuál tiene mayor accuracy?

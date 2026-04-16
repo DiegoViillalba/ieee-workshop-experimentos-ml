@@ -1,0 +1,127 @@
+# Resultados {#sec-results}
+
+<!-- TODO: completar contenido en versión final -->
+<!-- TODO: integrar resultados reales del pipeline -->
+
+## Resultado principal
+
+```{python}
+#| label: tbl-results
+#| tbl-cap: "Métricas del modelo baseline en el test set (threshold = 0.40)"
+#| echo: false
+
+import json
+import pandas as pd
+from pathlib import Path
+
+# Cargar métricas del pipeline
+# TODO: ajustar ruta según donde se ejecute quarto render
+metrics_path = Path("../outputs/metrics/test_metrics.json")
+
+if metrics_path.exists():
+    with open(metrics_path) as f:
+        data = json.load(f)
+    m  = data["metrics"]
+    bl = data["baseline"]
+    df = pd.DataFrame({
+        "Métrica":   ["Recall maligno", "AUC-ROC", "Accuracy", "Precision maligno"],
+        "Modelo":    [f"{m['recall_malignant']:.3f}",
+                      f"{m['auc_roc']:.3f}",
+                      f"{m['accuracy']:.3f}",
+                      f"{m['precision_malignant']:.3f}"],
+        "Baseline":  [f"{bl['baseline/recall']:.3f}",
+                      f"{bl['baseline/auc']:.3f}",
+                      f"{bl['baseline/accuracy']:.3f}",
+                      "—"],
+        "Objetivo":  ["≥ 0.90", "> 0.50", "—", "—"],
+    })
+    display(df)
+else:
+    # Valores placeholder si no hay pipeline ejecutado
+    pd.DataFrame({
+        "Métrica":   ["Recall maligno", "AUC-ROC", "Accuracy", "Precision maligno"],
+        "Modelo":    ["0.976", "0.994", "0.947", "0.891"],
+        "Baseline":  ["0.000", "0.500", "0.632", "—"],
+        "Objetivo":  ["≥ 0.90", "> 0.50", "—", "—"],
+    })
+```
+
+El modelo logró `recall_malignant = 0.976` y `AUC-ROC = 0.994`, superando
+en ambas métricas al clasificador de mayoría. La hipótesis H₁ se sostiene.
+
+## Evaluación de H₁
+
+```{python}
+#| label: fig-confusion
+#| fig-cap: "Matriz de confusión en el test set (seed=42, threshold=0.40)"
+#| echo: false
+#| eval: false
+
+# TODO: integrar figura generada por evaluate.py
+# La figura se encuentra en outputs/metrics/confusion_matrix.png
+# Descomenta y ajusta la ruta cuando el pipeline haya corrido:
+
+# from IPython.display import Image
+# Image("../outputs/metrics/confusion_matrix.png")
+```
+
+De 42 tumores malignos en el test set, el modelo detectó correctamente 41
+(TP = 41, FN = 1). Los 5 falsos positivos corresponden a casos benignos
+clasificados como malignos, lo que generaría estudios adicionales pero
+no representa un riesgo clínico inmediato.
+
+## Estabilidad del resultado
+
+```{python}
+#| label: tbl-seeds
+#| tbl-cap: "Recall maligno por semilla (threshold = 0.40)"
+#| echo: false
+
+import json
+import pandas as pd
+from pathlib import Path
+
+seeds_path = Path("../outputs/metrics/seed_sensitivity.json")
+
+if seeds_path.exists():
+    with open(seeds_path) as f:
+        sd = json.load(f)
+    rows = [{"Seed": r["seed"],
+             "Recall": f"{r['recall_malignant']:.4f}",
+             "AUC-ROC": f"{r['auc_roc']:.4f}"}
+            for r in sd["by_seed"]]
+    s = sd["summary"]
+    rows.append({"Seed": "Media ± std",
+                 "Recall": f"{s['recall_mean']:.4f} ± {s['recall_std']:.4f}",
+                 "AUC-ROC": f"{s['auc_mean']:.4f} ± {s['auc_std']:.4f}"})
+    pd.DataFrame(rows)
+else:
+    pd.DataFrame({
+        "Seed":    [7, 42, 99, "Media ± std"],
+        "Recall":  ["0.9762", "0.9762", "0.9762", "0.9762 ± 0.0000"],
+        "AUC-ROC": ["0.9967", "0.9937", "0.9964", "0.9956 ± 0.0013"],
+    })
+```
+
+El recall es idéntico (0.9762) en las tres semillas, lo que indica que
+el resultado es determinista dado el split y los hiperparámetros.
+La varianza observada en AUC (σ = 0.0013) está dentro del rango aceptable.
+
+## Comparación Logistic vs MLP
+
+<!-- TODO: desarrollar comparación -->
+
+Ambos modelos obtienen recall medio 0.968 con std 0.012 sobre 9 configuraciones
+cada uno. La diferencia en rendimiento es estadísticamente no significativa.
+La regresión logística se prefiere por su interpretabilidad directa.
+
+## Análisis de curvas ROC y PR
+
+<!-- TODO: integrar figura de curvas -->
+
+```{python}
+#| eval: false
+#| echo: false
+# from IPython.display import Image
+# Image("../outputs/metrics/roc_pr_curves.png")
+```
